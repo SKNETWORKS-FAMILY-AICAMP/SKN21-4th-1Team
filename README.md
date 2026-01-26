@@ -90,50 +90,49 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 ### 프로젝트 구조
 
 ```
-SKN21-3rd-1TEAM/
-├── backend/
-│   ├── common/
-│   │   ├── rag_pipeline.py          # RAG 처리 흐름
-│   │   ├── vector_db.py             # 벡터 DB 검색
-│   │   ├── chunking.py              # 문서 전처리
-│   │   └── prompts.py               # 공통 프롬프트
+SKN21-4TH-1TEAM/
+├── backend/                         # RAG 기반 챗봇 백엔드 로직
+│   ├── common/                      # 공통 RAG 파이프라인
+│   │   ├── __init__.py
+│   │   └── rag_pipeline.py          # 검색 → 프롬프트 → LLM 응답 흐름
 │   │
-│   ├── domains/
-│   │   ├── labor_law/               # 노동법 도메인 (A팀)
-│   │   │   ├── data/                # 원본 데이터
-│   │   │   ├── build_vector_db.py   # 벡터 DB 생성
-│   │   │   └── config.py            # 도메인 설정
+│   ├── domains/                     # 도메인별 법률 챗봇 (팀 단위 분리)
+│   │   ├── labor_law_a/             # A팀: 노동법
+│   │   │   ├── data/                # 노동법 원본 문서
+│   │   │   ├── build_vector_db.py   # 노동법 벡터 DB 생성
+│   │   │   └── config.py            # 노동법 도메인 설정
 │   │   │
-│   │   ├── welfare_law/             # 사회복지법 도메인 (B팀)
-│   │   │   ├── data/                # 원본 데이터
-│   │   │   ├── build_vector_db.py   # 벡터 DB 생성
-│   │   │   └── config.py            # 도메인 설정
+│   │   ├── welfare_law_b/           # B팀: 사회복지법
+│   │   │   ├── data/                # 사회복지법 문서
+│   │   │   ├── build_vector_db.py   # 사회복지법 벡터 DB 생성
+│   │   │   └── config.py            # 사회복지법 도메인 설정
 │   │   │
-│   │   └── criminal_law/            # 형사법 도메인 (C팀)
-│   │       ├── data/                # 원본 데이터
-│   │       ├── build_vector_db.py   # 벡터 DB 생성
-│   │       └── config.py            # 도메인 설정
+│   │   └── criminal_law_c/          # C팀: 형사법
+│   │       ├── data/                # 형사법 법령·판례 데이터
+│   │       ├── build_vector_db.py   # 형사법 벡터 DB 생성
+│   │       └── config.py            # 형사법 도메인 설정
 │   │
-│   └── run_rag.py                   # RAG 실행 엔트리
+│   └── run_rag.py                   # 도메인 선택 후 RAG 실행 엔트리
 │
-├── chat/
-│   ├── views.py                     # 챗봇 요청 처리
-│   ├── models.py                   # 사용자·채팅 모델
+├── chat/                            # Django 웹 애플리케이션
+│   ├── migrations/                 # DB 마이그레이션
+│   ├── admin.py                    # 관리자 페이지 설정
+│   ├── apps.py                     # chat 앱 설정
+│   ├── models.py                   # 채팅 데이터 모델
 │   ├── urls.py                     # URL 라우팅
-│   └── templates/
-│       └── chat.html                # 챗봇 UI
+│   └── views.py                    # 챗봇 요청 처리
 │
-├── config/
-│   ├── settings.py                  # Django 설정
-│   └── urls.py                      # 메인 URL
+├── config/                          # Django 프로젝트 설정
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
 │
-├── static/
-│   ├── css/                         # 스타일시트
-│   ├── js/                          # 프론트 스크립트
-│   └── img/                         # 이미지 리소스
-│
-├── manage.py                        # Django 실행 파일
-└── README.md                        # 프로젝트 문서
+├── static/                          # CSS / JS / 이미지 등 정적 파일
+├── db.sqlite3                      # SQLite 데이터베이스
+├── manage.py                       # Django 실행 진입점
+└── README.md                       # 프로젝트 문서
+
 ```
 
 ---
