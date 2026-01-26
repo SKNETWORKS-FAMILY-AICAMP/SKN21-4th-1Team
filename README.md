@@ -5,20 +5,13 @@
 본 프로젝트는 **법령 데이터를 기반으로 사용자의 질문에 근거 있는 답변을 제공하는 AI 챗봇 웹서비스**입니다.  
 RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문을 검색한 뒤 LLM을 통해 답변을 생성합니다.
 
-<br><div align="center">
-
-[![Django](https://img.shields.io/badge/Django-092E20?style=flat-square&logo=django&logoColor=white)](https://www.djangoproject.com/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
-
-</div><br>
-
+<br>
 
 ---
 
 
 # 📑 목차
+<br>
 
 1. 프로젝트 개요
 2. 기술 스택 & 사용한 모델
@@ -29,6 +22,8 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 7. 프로젝트 개선 방향
 8. 회고
 
+<br>
+
 ---
 
 # 📖 프로젝트 개요
@@ -38,7 +33,8 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 - **개발 기간**: 3차(RAG 챗봇) + 4차(웹 서비스) 통합 프로젝트
 - **팀 구성**: 6명
 - **개발 환경**: Python 3.12+, SQLite
----
+
+
 
 ### **프로젝트 배경**
 
@@ -50,7 +46,6 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 
 이를 해결하기 위해, **법령 데이터를 AI가 이해하고 설명해주는 챗봇 웹서비스**를 기획했습니다.
 
----
 
 ### **프로젝트 목표**
 
@@ -59,23 +54,15 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 - Django 기반 **웹 챗봇 UI 구현**
 - 누구나 쉽게 사용할 수 있는 **법률 Q&A 서비스**
 
----
 
-### **주요 기능**
+### **핵심 아이디어**
 
-#### 1. 법령 기반 질의응답
-- 사용자의 질문을 자연어로 입력
-- 관련 법령 조문을 벡터 검색
-- 검색 결과를 기반으로 AI 답변 생성
+- 법률 분야를 노동법 / 사회복지법 / 형사법으로 분리
+- 각 도메인별 전용 데이터와 벡터 DB 구축
+- 공통 RAG 파이프라인을 활용해 정확한 근거 기반 응답 생성
+- Django 웹 인터페이스를 통한 직관적인 챗봇 사용 경험 제공
 
-#### 2. 근거 중심 답변
-- 단순 요약이 아닌 **관련 조문 포함 답변**
-- 법령 출처 명시
-
-#### 3. 웹 챗봇 UI
-- Django 기반 웹 페이지
-- 실시간 채팅 형태의 UX
-- 사용자 질문 / AI 답변 기록 유지
+<br><br>
 
 ---
 
@@ -103,57 +90,91 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 ### 프로젝트 구조
 
 ```
-SKN21-3rd-1TEAM/
-├── backend/
-│   ├── common/
-│   │   ├── rag_pipeline.py          # RAG 처리 흐름
-│   │   ├── vector_db.py             # 벡터 DB 검색
-│   │   ├── chunking.py              # 문서 전처리
-│   │   └── prompts.py               # 공통 프롬프트
+SKN21-4TH-1TEAM/
+├── backend/                         # RAG 기반 챗봇 백엔드 로직
+│   ├── common/                      # 공통 RAG 파이프라인
+│   │   ├── __init__.py
+│   │   └── rag_pipeline.py          # 검색 → 프롬프트 → LLM 응답 흐름
 │   │
-│   ├── domains/
-│   │   ├── labor_law/               # 노동법 도메인 (A팀)
-│   │   │   ├── data/                # 원본 데이터
-│   │   │   ├── build_vector_db.py   # 벡터 DB 생성
-│   │   │   └── config.py            # 도메인 설정
+│   ├── domains/                     # 도메인별 법률 챗봇 (팀 단위 분리)
+│   │   ├── labor_law_a/             # A팀: 노동법
+│   │   │   ├── data/                # 노동법 원본 문서
+│   │   │   ├── build_vector_db.py   # 노동법 벡터 DB 생성
+│   │   │   └── config.py            # 노동법 도메인 설정
 │   │   │
-│   │   ├── welfare_law/             # 사회복지법 도메인 (B팀)
-│   │   │   ├── data/                # 원본 데이터
-│   │   │   ├── build_vector_db.py   # 벡터 DB 생성
-│   │   │   └── config.py            # 도메인 설정
+│   │   ├── welfare_law_b/           # B팀: 사회복지법
+│   │   │   ├── data/                # 사회복지법 문서
+│   │   │   ├── build_vector_db.py   # 사회복지법 벡터 DB 생성
+│   │   │   └── config.py            # 사회복지법 도메인 설정
 │   │   │
-│   │   └── criminal_law/            # 형사법 도메인 (C팀)
-│   │       ├── data/                # 원본 데이터
-│   │       ├── build_vector_db.py   # 벡터 DB 생성
-│   │       └── config.py            # 도메인 설정
+│   │   └── criminal_law_c/          # C팀: 형사법
+│   │       ├── data/                # 형사법 법령·판례 데이터
+│   │       ├── build_vector_db.py   # 형사법 벡터 DB 생성
+│   │       └── config.py            # 형사법 도메인 설정
 │   │
-│   └── run_rag.py                   # RAG 실행 엔트리
+│   └── run_rag.py                   # 도메인 선택 후 RAG 실행 엔트리
 │
-├── chat/
-│   ├── views.py                     # 챗봇 요청 처리
-│   ├── models.py                   # 사용자·채팅 모델
+├── chat/                            # Django 웹 애플리케이션
+│   ├── migrations/                 # DB 마이그레이션
+│   ├── admin.py                    # 관리자 페이지 설정
+│   ├── apps.py                     # chat 앱 설정
+│   ├── models.py                   # 채팅 데이터 모델
 │   ├── urls.py                     # URL 라우팅
-│   └── templates/
-│       └── chat.html                # 챗봇 UI
+│   └── views.py                    # 챗봇 요청 처리
 │
-├── config/
-│   ├── settings.py                  # Django 설정
-│   └── urls.py                      # 메인 URL
+├── config/                          # Django 프로젝트 설정
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
 │
-├── static/
-│   ├── css/                         # 스타일시트
-│   ├── js/                          # 프론트 스크립트
-│   └── img/                         # 이미지 리소스
-│
-├── manage.py                        # Django 실행 파일
-└── README.md                        # 프로젝트 문서
+├── static/                          # CSS / JS / 이미지 등 정적 파일
+├── db.sqlite3                      # SQLite 데이터베이스
+├── manage.py                       # Django 실행 진입점
+└── README.md                       # 프로젝트 문서
+
 ```
 
-## 📝 회고
+---
 
 
-## 🚀 아쉬운 점 및 개선 방향
 
-### 아쉬운 점
 
-### 향후 개선 계획
+
+
+
+# WBS
+
+---
+
+# 트러블 슈팅
+
+---
+
+# ✨ **주요 기능**
+
+## 1. 법령 기반 질의응답
+- 사용자의 질문을 자연어로 입력
+- 관련 법령 조문을 벡터 검색
+- 검색 결과를 기반으로 AI 답변 생성
+
+## 2. 근거 중심 답변
+- 단순 요약이 아닌 **관련 조문 포함 답변**
+- 법령 출처 명시
+
+## 3. 웹 챗봇 UI
+- Django 기반 웹 페이지
+- 실시간 채팅 형태의 UX
+- 사용자 질문 / AI 답변 기록 유지
+
+---
+
+# 수행 결과 (시연 페이지)
+
+---
+
+# 🚀 프로젝트 개선 방향
+
+---
+
+# 📝 회고
