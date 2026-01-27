@@ -174,14 +174,30 @@
             messages.appendChild(loadingDiv);
             messages.scrollTop = messages.scrollHeight;
 
+            // CSRF 토큰 가져오기
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
             fetch("/chat/api/", {
                 method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": csrfToken
+                },
                 body: `message=${encodeURIComponent(message)}`
             })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`서버 오류: ${res.status}`);
+                    }
+                    return res.json();
+                })
                 .then(data => {
                     loadingBubble.textContent = "";
                     typeMessage(data.reply, loadingBubble);
+                })
+                .catch(error => {
+                    loadingBubble.textContent = `⚠️ 오류가 발생했습니다: ${error.message}\n다시 시도해 주세요.`;
+                    console.error("Error:", error);
                 });
 
         }
