@@ -3,12 +3,190 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>노동법 챗봇</title>
+    <title>Labor Law Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9fafb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* 전체 챗박스 */
+        .chat-box {
+            width: 800px;
+            height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 메시지 영역 */
+        .messages {
+            padding: 24px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .bubble {
+            max-width: 70%;
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .user .bubble {
+            background: #2563eb;
+            color: white;
+        }
+
+        .bot .bubble {
+            background: #f3f4f6;
+            color: #111;
+        }
+
+        /* 입력창 */
+        .input-box {
+            display: flex;
+            padding: 12px;
+            border-top: 1px solid #eee;
+            border-radius: 0 0 20px 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            outline: none;
+            font-size: 14px;
+        }
+
+        button {
+            margin-left: 10px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            border: none;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #1e40af;
+        }
+    </style>
 </head>
 
 <body>
-    <h2>💬 노동법 챗봇</h2>
-    <p>여기에 챗봇 UI가 들어갈 예정입니다.</p>
+
+    <!-- CSRF 토큰 -->
+    <form id="csrf-form">
+        {% csrf_token %}
+    </form>
+
+    <div class="chat-box">
+        <div class="messages" id="messages"></div>
+
+        <div class="input-box">
+            <input type="text" id="messageInput" placeholder="노동법 질문을 입력하세요" />
+            <button onclick="sendMessage()">전송</button>
+        </div>
+    </div>
+
+    <script>
+        const messages = document.getElementById("messages");
+
+        /* 타이핑 애니메이션 */
+        function typeMessage(text, element, speed = 25) {
+            let index = 0;
+            element.textContent = "";
+            const interval = setInterval(() => {
+                if (index < text.length) {
+                    element.textContent += text[index++];
+                    messages.scrollTop = messages.scrollHeight;
+                } else {
+                    clearInterval(interval);
+                }
+            }, speed);
+        }
+
+        /* 첫 진입 시 AI 인사 */
+        window.onload = () => {
+            const botMessage = document.createElement("div");
+            botMessage.className = "message bot";
+
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            botMessage.appendChild(bubble);
+            messages.appendChild(botMessage);
+
+            typeMessage(
+                "안녕하세요 👋\n노동법 AI 챗봇입니다.\n궁금한 노동법 관련 질문을 편하게 입력해 주세요.",
+                bubble
+            );
+        };
+
+        /* 메시지 전송 */
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            const message = input.value.trim();
+            if (!message) return;
+
+            // 사용자 메시지
+            messages.innerHTML += `
+                <div class="message user">
+                    <div class="bubble">${message}</div>
+                </div>
+            `;
+            input.value = "";
+            messages.scrollTop = messages.scrollHeight;
+
+            // 로딩 메시지
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "message bot";
+
+            const loadingBubble = document.createElement("div");
+            loadingBubble.className = "bubble";
+            loadingBubble.textContent = "🤖 AI가 답변을 생성 중입니다...";
+            loadingDiv.appendChild(loadingBubble);
+            messages.appendChild(loadingDiv);
+            messages.scrollTop = messages.scrollHeight;
+
+            fetch("/chat/api/", {
+                method: "POST",
+                body: `message=${encodeURIComponent(message)}`
+            })
+                .then(res => res.json())
+                .then(data => {
+                    loadingBubble.textContent = "";
+                    typeMessage(data.reply, loadingBubble);
+                });
+
+        }
+    </script>
+
 </body>
 
 </html>
