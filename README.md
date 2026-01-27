@@ -97,20 +97,10 @@ SKN21-4TH-1TEAM/
 │   │   └── rag_pipeline.py          # 검색 → 프롬프트 → LLM 응답 흐름
 │   │
 │   ├── domains/                     # 도메인별 법률 챗봇 (팀 단위 분리)
-│   │   ├── labor_law_a/             # A팀: 노동법
+│   │   ├── labor_law/               # 노동법
 │   │   │   ├── data/                # 노동법 원본 문서
 │   │   │   ├── build_vector_db.py   # 노동법 벡터 DB 생성
 │   │   │   └── config.py            # 노동법 도메인 설정
-│   │   │
-│   │   ├── welfare_law_b/           # B팀: 사회복지법
-│   │   │   ├── data/                # 사회복지법 문서
-│   │   │   ├── build_vector_db.py   # 사회복지법 벡터 DB 생성
-│   │   │   └── config.py            # 사회복지법 도메인 설정
-│   │   │
-│   │   └── criminal_law_c/          # C팀: 형사법
-│   │       ├── data/                # 형사법 법령·판례 데이터
-│   │       ├── build_vector_db.py   # 형사법 벡터 DB 생성
-│   │       └── config.py            # 형사법 도메인 설정
 │   │
 │   └── run_rag.py                   # 도메인 선택 후 RAG 실행 엔트리
 │

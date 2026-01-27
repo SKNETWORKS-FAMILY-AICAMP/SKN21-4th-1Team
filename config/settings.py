@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'chat',   # chat 앱 추가
+    'home',   # home 앱 추가
 ]
 
 MIDDLEWARE = [
