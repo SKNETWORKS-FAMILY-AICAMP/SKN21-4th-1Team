@@ -655,6 +655,14 @@ class LegalRAGBuilder:
             final_docs = final_docs[:config.TOP_K_FINAL]
 
             logger.info(f"Final selected: {len(final_docs)} docs")
+            for i, doc in enumerate(final_docs, 1):
+                meta = doc.metadata
+                law = meta.get('law_name', '법령명')
+                art = meta.get('article_no', '')
+                title = meta.get('article_title', '') or meta.get('title', '')
+                score = meta.get('relevance_score', 0)
+                logger.info(f"   [{i}] {law} 제{art}조 {title} (Score: {score:.4f})")
+
             return {"retrieved_docs": final_docs}
 
         return search_documents
