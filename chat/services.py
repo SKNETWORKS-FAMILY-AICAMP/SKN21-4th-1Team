@@ -71,6 +71,9 @@ class ChatbotService:
              print("경고: 무거운 모델이 로딩되지 않았습니다. 동기 초기화를 시도합니다.")
              self._sync_initialize()
 
+        if self._vs_manager is None or self._reranker is None:
+             raise RuntimeError("Critical: Heavy models failed to initialize.")
+
         # 주입 (미리 로딩된 모델)
         self._builder.set_components(self._vs_manager, self._reranker)
         
