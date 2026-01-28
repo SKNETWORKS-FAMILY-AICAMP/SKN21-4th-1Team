@@ -22,4 +22,6 @@ urlpatterns = [
     path("", include("home.urls")),
     path("chat/", include("chat.urls")),
     path("criminal/", include("criminal.urls")),
+    path('accounts/', include('accounts.urls')), # 앱
+    path('auth/', include('allauth.urls')),      # 소셜 로그인 기능
 ]
