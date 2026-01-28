@@ -6,7 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-QDRANT_URL = "http://localhost:6333"
+QDRANT_URL = (
+    "http://localhost:6333"
+    if os.getenv("SERVICE_TARGET") == "dev"
+    else os.getenv("QDRANT_URL")
+)
+
 COLLECTION_NAME = "criminal"
 QDRANT_API_KEY = os.getenv("QDRANT__SERVICE__API_KEY")
 

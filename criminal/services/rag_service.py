@@ -16,7 +16,6 @@ def get_retriever():
 
 def get_chain():
     retriever = get_retriever()
-
     llm = ChatOpenAI(model_name="gpt-5", api_key=os.getenv("OPENAI_API_KEY"))
     prompt = ChatPromptTemplate.from_template(
         """

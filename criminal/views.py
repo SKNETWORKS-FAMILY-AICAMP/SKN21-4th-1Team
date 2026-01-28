@@ -3,16 +3,23 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from .services.rag_service import get_chain
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 @csrf_exempt
 def index(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = json.loads(request.body)
-            message = data.get('message', '')
+            message = data.get("message", "")
             chain = get_chain()
             result = chain.invoke(message)
-            return JsonResponse({'message': result, 'status': 'success'})
+            return JsonResponse({"message": result, "status": "success"})
         except json.JSONDecodeError:
-            return JsonResponse({'message': 'Invalid JSON', 'status': 'error'}, status=400)
-    return render(request, 'criminal.html')
+            return JsonResponse(
+                {"message": "Invalid JSON", "status": "error"}, status=400
+            )
+
+    return render(request, "criminal.html")
