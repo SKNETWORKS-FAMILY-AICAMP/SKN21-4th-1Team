@@ -1,103 +1,99 @@
-<!DOCTYPE html>
-<html lang="ko">
+{% extends 'base.html' %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>Labor Law AI Chatbot</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+{% block title %}홈 | Labor Law Chatbot{% endblock %}
 
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Apple SD Gothic Neo', sans-serif;
-            background-color: #f9fafb;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+{% block extra_style %}
+<style>
+    * {
+        box-sizing: border-box;
+    }
 
-        .container {
-            display: flex;
-            /* 추가 */
-            flex-direction: column;
-            /* 추가 */
-            justify-content: center;
-            /* 추가: 내용물 중앙 정렬 */
-            align-items: center;
-            /* 추가 */
+    body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+    }
 
-            text-align: center;
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
-            /* chat-box와 동일하게 수정 */
+    nav {
+        flex-shrink: 0;
+    }
 
-            width: 800px;
-            /* 고정값으로 통일 */
-            height: 600px;
-            margin: 0 auto;
-            /* 중앙 배치 */
-        }
+    .home-wrapper {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
 
-        h1 {
-            margin-bottom: 10px;
-            font-size: 32px;
-            color: #111;
-        }
+    .container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
+        width: 800px;
+        height: 600px;
+    }
 
-        .subtitle {
-            color: #6b7280;
-            margin-bottom: 40px;
-            font-size: 16px;
-        }
+    h1 {
+        margin-bottom: 10px;
+        font-size: 32px;
+        color: #111;
+    }
 
-        .examples {
-            text-align: left;
-            background: #f3f4f6;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 40px;
-            font-size: 15px;
-            color: #374151;
-        }
+    .subtitle {
+        color: #6b7280;
+        margin-bottom: 40px;
+        font-size: 16px;
+    }
 
-        .examples p {
-            margin: 8px 0;
-        }
+    .examples {
+        text-align: left;
+        background: #f3f4f6;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 40px;
+        font-size: 15px;
+        color: #374151;
+    }
 
-        .start-btn {
-            display: inline-block;
-            width: 30%;
-            padding: 16px 0;
-            background-color: #2563eb;
-            color: white;
-            text-decoration: none;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 18px;
-            transition: background 0.2s;
-        }
+    .examples p {
+        margin: 8px 0;
+    }
 
-        .start-btn:hover {
-            background-color: #1e40af;
-        }
+    .start-btn {
+        display: inline-block;
+        width: 30%;
+        padding: 16px 0;
+        background-color: #2563eb;
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 18px;
+        transition: background 0.2s;
+    }
 
-        .notice {
-            margin-top: 25px;
-            font-size: 13px;
-            color: #9ca3af;
-            line-height: 1.5;
-        }
-    </style>
-</head>
+    .start-btn:hover {
+        background-color: #1e40af;
+    }
 
-<body>
+    .notice {
+        margin-top: 25px;
+        font-size: 13px;
+        color: #9ca3af;
+        line-height: 1.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-wrapper">
     <div class="container">
         <h1>Labor Law AI Chatbot</h1>
         <p class="subtitle">복잡한 노동법을 AI와의 대화로 쉽게 해결하세요</p>
@@ -112,6 +108,5 @@
             <br>※ 본 서비스는 참고용 AI 안내 서비스이며, 법적 효력을 갖는 자문은 아닙니다.
         </p>
     </div>
-</body>
-
-</html>
+</div>
+{% endblock %}

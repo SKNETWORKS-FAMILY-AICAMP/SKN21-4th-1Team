@@ -56,7 +56,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.google",
     "chat",  # chat 앱 추가
     "home",  # home 앱 추가
-    "criminal",  # criminal 앱 추가
+    # "criminal",  # 임시 비활성화 - 필요한 패키지 설치 후 활성화
 ]
 
 MIDDLEWARE = [
@@ -145,11 +145,15 @@ AUTHENTICATION_BACKENDS = (
 )
 
 LOGIN_REDIRECT_URL = "/chat/"
+ACCOUNT_LOGOUT_REDIRECT_URL = '/' # 로그아웃 후 홈화면으로 이동
 
 SOCIALACCOUNT_QUERY_EMAIL = True
-# 기존 설정은 주석 처리하거나 삭제하고 아래 내용을 넣으세요
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_LOGIN_METHODS = {'email'}  # 이메일로 로그인
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']  # username 제거!
+ACCOUNT_EMAIL_VERIFICATION = "none"  # 이메일 인증 생략 (테스트용)
 
 # HTTP 환경에서도 소셜 로그인이 작동하도록 허용
-SOCIALACCOUNT_LOGIN_ON_GET = True  # 중간 페이지 없이 바로 구글 로그인창으로 이동
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# 실제 메일을 보내지 않고 터미널 콘솔에 출력 (개발용)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

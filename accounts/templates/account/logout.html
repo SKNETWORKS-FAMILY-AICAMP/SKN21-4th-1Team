@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}로그아웃 | Labor Law Chatbot{% endblock %}
+
+{% block extra_style %}
+<style>
+    .logout-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 100px);
+    }
+
+    .logout-card {
+        width: 100%;
+        max-width: 400px;
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        text-align: center;
+    }
+
+    h2 {
+        color: #111;
+        margin-bottom: 15px;
+        font-size: 24px;
+    }
+
+    .subtitle {
+        color: #6b7280;
+        font-size: 14px;
+        margin-bottom: 30px;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 25px;
+    }
+
+    .btn-cancel,
+    .btn-confirm {
+        flex: 1;
+        padding: 14px;
+        border-radius: 12px;
+        font-weight: bold;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-cancel {
+        background: #f3f4f6;
+        color: #4b5563;
+    }
+
+    .btn-cancel:hover {
+        background: #e5e7eb;
+    }
+
+    .btn-confirm {
+        background: #dc2626;
+        color: white;
+    }
+
+    .btn-confirm:hover {
+        background: #b91c1c;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logout-wrapper">
+    <div class="logout-card">
+        <h2>로그아웃</h2>
+        <p class="subtitle">정말 로그아웃 하시겠습니까?</p>
+
+        <form method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <div class="btn-group">
+                <a href="/" class="btn-cancel">취소</a>
+                <button type="submit" class="btn-confirm">로그아웃</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Labor Law Chatbot{% endblock %}</title>
+    <style>
+        /* 모든 페이지에 공통으로 적용될 기본 스타일 */
+        body {
+            font-family: 'Apple SD Gothic Neo', sans-serif;
+            background: #f9fafb;
+            margin: 0;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        nav a {
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-brand {
+            color: #111;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .nav-brand:hover {
+            color: #2563eb;
+        }
+
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-user span {
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .btn-logout,
+        .btn-login {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-logout {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-logout:hover {
+            background: #fecaca;
+        }
+
+        .btn-login {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+
+        .btn-login:hover {
+            background: #bfdbfe;
+        }
+    </style>
+    {% block extra_style %}{% endblock %}
+</head>
+
+<body>
+    <nav>
+        <a href="/" class="nav-brand">Labor Law Chatbot</a>
+        <div class="nav-user">
+            {% if user.is_authenticated %}
+            <span>{{ user.username }}님 안녕하세요</span>
+            <a href="{% url 'account_logout' %}" class="btn-logout">로그아웃</a>
+            {% else %}
+            <a href="{% url 'account_login' %}" class="btn-login">로그인</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% block content %}
+    {% endblock %}
+</body>
+
+</html>
