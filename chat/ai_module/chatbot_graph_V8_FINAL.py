@@ -377,7 +377,7 @@ class VectorStoreManager:
                 url=self.qdrant_url,
                 api_key=self.qdrant_api_key,
                 timeout=self.config.QDRANT_TIMEOUT,
-                prefer_grpc=False
+                prefer_grpc=self.config.QDRANT_PREFER_GRPC
             )
             logger.info("Qdrant (Async) connected")
             
