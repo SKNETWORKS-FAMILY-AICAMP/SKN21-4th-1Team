@@ -45,6 +45,10 @@ from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, END
 from langchain_core.runnables import RunnableLambda
 
+# LangSmith Tracing
+from langsmith import traceable
+
+
 # Load Environment Variables
 load_dotenv(find_dotenv())
 
@@ -223,7 +227,7 @@ class JinaReranker(BaseDocumentCompressor):
         arbitrary_types_allowed = True
         extra = "allow"
 
-    def __init__(self, model_name: str = None, top_n: int = None, **kwargs):
+    def __init__(self, model_name: Optional[str] = None, top_n: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
         if model_name:
             self.model_name = model_name
@@ -465,6 +469,51 @@ class LegalRAGBuilder:
             top_n=self.config.TOP_K_RERANK
         )
 
+    @traceable(run_type="retriever", name="Qdrant Hybrid Search")
+    async def _execute_search(self, dense_vec: List[float], sparse_vec: Optional[models.SparseVector], collection_name: str, limit: int) -> List[Document]:
+        """Qdrant 검색 수행 (LangSmith 추적용)"""
+        prefetch = [
+            models.Prefetch(
+                query=dense_vec,
+                using="dense",
+                limit=limit,
+            )
+        ]
+
+        if sparse_vec:
+            prefetch.append(
+                models.Prefetch(
+                    query=sparse_vec,
+                    using="sparse",
+                    limit=limit,
+                )
+            )
+
+        # Execute Search
+        results = await self.client.query_points(
+            collection_name=collection_name,
+            prefetch=prefetch,
+            query=models.FusionQuery(fusion=models.Fusion.RRF),
+            limit=limit
+        )
+
+        # Convert to Documents
+        vector_docs = []
+        for point in results.points:
+            payload = point.payload
+            text = payload.get("text", "")
+            if text:
+                doc = Document(
+                    page_content=text,
+                    metadata={k: v for k, v in payload.items()
+                                if k != "text"}
+                )
+                doc.metadata["relevance_score"] = point.score
+                vector_docs.append(doc)
+        
+        return vector_docs
+
+
     def _create_query_expander(self):
         """Query Expander 생성 [사용 프롬프트: PROMPT_QUERY_EXPANSION] - HyDE + Hybrid"""
         structured_llm = self.llm.with_structured_output(HybridQuery)
@@ -574,51 +623,21 @@ class LegalRAGBuilder:
 
             dense_vec, sparse_vec = await asyncio.gather(get_dense_vec(), get_sparse_vec())
 
-            # 3. Qdrant Native Hybrid Search
+            # 3. Qdrant Native Hybrid Search (Traced)
             try:
-                prefetch = [
-                    models.Prefetch(
-                        query=dense_vec,
-                        using="dense",
-                        limit=config.TOP_K_VECTOR,
-                    )
-                ]
-
-                if sparse_vec:
-                    prefetch.append(
-                        models.Prefetch(
-                            query=sparse_vec,
-                            using="sparse",
-                            limit=config.TOP_K_VECTOR,
-                        )
-                    )
-
-                # Execute Search
-                results = await client.query_points(
+                vector_docs = await self._execute_search(
+                    dense_vec=dense_vec,
+                    sparse_vec=sparse_vec,
                     collection_name=collection_name,
-                    prefetch=prefetch,
-                    query=models.FusionQuery(fusion=models.Fusion.RRF),
                     limit=config.TOP_K_VECTOR
                 )
-
-                # Convert to Documents
-                vector_docs = []
-                for point in results.points:
-                    payload = point.payload
-                    text = payload.get("text", "")
-                    if text:
-                        doc = Document(
-                            page_content=text,
-                            metadata={k: v for k, v in payload.items()
-                                      if k != "text"}
-                        )
-                        doc.metadata["relevance_score"] = point.score
-                        vector_docs.append(doc)
-
+                
                 logger.info(f"Hybrid Search Results: {len(vector_docs)} docs")
 
             except Exception as e:
                 logger.error(f"Search failed: {e}")
+                import traceback
+                traceback.print_exc()
                 return {"retrieved_docs": []}
 
             # 4. Reranking (Async wrap or sync)
