@@ -29,8 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True if os.getenv("SERVICE_TARGET") == "dev" else False
-
+DEBUG = True 
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -49,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",  # 사이트 추가
+    "accounts",
     # allauth 관련 앱
     "allauth",
     "allauth.account",
@@ -75,7 +75,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -123,9 +123,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "ko-kr"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Seoul"
 
 USE_I18N = True
 
@@ -147,8 +147,9 @@ AUTHENTICATION_BACKENDS = (
 LOGIN_REDIRECT_URL = "/chat/"
 
 SOCIALACCOUNT_QUERY_EMAIL = True
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-ACCOUNT_EMAIL_REQUIRED = True
+# 기존 설정은 주석 처리하거나 삭제하고 아래 내용을 넣으세요
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 
 # HTTP 환경에서도 소셜 로그인이 작동하도록 허용
 SOCIALACCOUNT_LOGIN_ON_GET = True  # 중간 페이지 없이 바로 구글 로그인창으로 이동

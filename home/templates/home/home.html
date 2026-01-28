@@ -5,12 +5,15 @@
     <meta charset="UTF-8">
     <title>Labor Law AI Chatbot</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: 'Apple SD Gothic Neo', sans-serif;
             background-color: #f9fafb;
             display: flex;
             justify-content: center;
@@ -18,50 +21,67 @@
             height: 100vh;
         }
 
-
         .container {
+            display: flex;
+            /* 추가 */
+            flex-direction: column;
+            /* 추가 */
+            justify-content: center;
+            /* 추가: 내용물 중앙 정렬 */
+            align-items: center;
+            /* 추가 */
+
             text-align: center;
             background: white;
-            padding: 100px;
-            border-radius: 12px;
-            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.282);
-            width: 90%;
-            max-width: 750px;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
+            /* chat-box와 동일하게 수정 */
+
+            width: 800px;
+            /* 고정값으로 통일 */
+            height: 600px;
+            margin: 0 auto;
+            /* 중앙 배치 */
         }
 
         h1 {
             margin-bottom: 10px;
-            font-size: 28px;
+            font-size: 32px;
+            color: #111;
         }
 
         .subtitle {
-            color: #555;
-            margin-bottom: 100px;
+            color: #6b7280;
+            margin-bottom: 40px;
+            font-size: 16px;
         }
 
         .examples {
             text-align: left;
             background: #f3f4f6;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 50px;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 40px;
             font-size: 15px;
+            color: #374151;
         }
 
         .examples p {
-            margin: 6px 0;
+            margin: 8px 0;
         }
 
         .start-btn {
             display: inline-block;
-            padding: 14px 28px;
+            width: 30%;
+            padding: 16px 0;
             background-color: #2563eb;
             color: white;
             text-decoration: none;
-            border-radius: 8px;
+            border-radius: 12px;
             font-weight: bold;
-            margin-bottom: 30px;
-
+            font-size: 18px;
+            transition: background 0.2s;
         }
 
         .start-btn:hover {
@@ -69,58 +89,29 @@
         }
 
         .notice {
-            margin-top: 20px;
+            margin-top: 25px;
             font-size: 13px;
-            color: #777;
-        }
-
-        .google-btn {
-            display: inline-block;
-            padding: 14px 28px;
-            background-color: #ffffff;
-            /* 하얀색 배경 */
-            color: #000000;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: bold;
-            border: 1px solid #ddd;
-            /* 테두리 추가 */
-            margin-top: 10px;
-        }
-
-        .google-btn:hover {
-            background-color: #f1f1f1;
+            color: #9ca3af;
+            line-height: 1.5;
         }
     </style>
 </head>
 
 <body>
-
     <div class="container">
         <h1>Labor Law AI Chatbot</h1>
-        <p class="subtitle">
-            복잡한 노동법을 AI와의 대화로 쉽게 해결하세요
-        </p>
-
+        <p class="subtitle">복잡한 노동법을 AI와의 대화로 쉽게 해결하세요</p>
         <div class="examples">
-            <strong>💬 예시 질문</strong>
+            <strong>💬 이런 내용을 물어보세요</strong>
             <p>• 퇴직금은 언제 받을 수 있나요?</p>
             <p>• 계약직도 연차가 있나요?</p>
             <p>• 해고 예고 없이 해고당했는데 합법인가요?</p>
         </div>
-
-        <a href="/chat/" class="start-btn">챗봇 시작하기</a>
-
+        <a href="{% url 'chat' %}" class="start-btn">챗봇 시작하기</a>
         <p class="notice">
-            ※ 본 서비스는 참고용 AI 안내 서비스이며, 법적 효력을 갖는 자문은 아닙니다.
+            <br>※ 본 서비스는 참고용 AI 안내 서비스이며, 법적 효력을 갖는 자문은 아닙니다.
         </p>
-
-        <br> {% load socialaccount %}
-        <a href="{% provider_login_url 'google' %}" class="google-btn">
-            구글 계정으로 시작하기
-        </a>
     </div>
-
 </body>
 
 </html>

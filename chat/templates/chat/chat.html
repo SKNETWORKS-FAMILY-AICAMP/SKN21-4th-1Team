@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <title>Labor Law Chatbot</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             background: #f9fafb;
@@ -13,17 +17,22 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            overflow: hidden;
+            /* 팝업 시 스크롤 방지 */
         }
 
-        /* 전체 챗박스 */
         .chat-box {
             width: 800px;
+            /* 고정값으로 통일 */
             height: 600px;
             background: white;
             border-radius: 20px;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
             display: flex;
             flex-direction: column;
+            position: relative;
+            margin: 0 auto;
+            /* 중앙 배치 */
         }
 
         /* 메시지 영역 */
@@ -96,12 +105,120 @@
         button:hover {
             background: #1e40af;
         }
+
+        .login-popup {
+            position: fixed;
+            bottom: 20px;
+            /* 바닥에서 살짝 띄우면 더 세련되어 보입니다 */
+            left: 50%;
+            /* 화면 중앙 정렬을 위한 시작점 */
+            transform: translate(-50%, 120%);
+            /* 중앙 정렬 유지 + 화면 아래로 숨김 */
+
+            width: 90%;
+            /* 기본적으로 화면의 90% 사용 */
+            max-width: 500px;
+            /* 아무리 넓어져도 500px은 넘지 않도록 제한 */
+
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            /* 양옆을 줄일 때는 둥근 모서리가 더 잘 어울립니다 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            text-align: center;
+
+            transition: transform 0.4s ease-out;
+        }
+
+        /* 팝업이 나타날 때 (중앙 정렬 유지하며 위로) */
+        .login-popup.show {
+            transform: translate(-50%, 0);
+        }
+
+        /* 버튼 및 텍스트 스타일 */
+        .popup-content h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #111;
+        }
+
+        .popup-content p {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .popup-btns {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-later {
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-go-login {
+            padding: 12px 25px;
+            background: #2563eb;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login-popup h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #111;
+        }
+
+        .login-popup p {
+            margin: 0 0 20px 0;
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .popup-btns {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-later {
+            flex: 1;
+            padding: 12px;
+            background: #f3f4f6;
+            color: #4b5563;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-go-login {
+            flex: 1;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 
 <body>
 
-    <!-- CSRF 토큰 -->
     <form id="csrf-form">
         {% csrf_token %}
     </form>
@@ -113,12 +230,24 @@
             <input type="text" id="messageInput" placeholder="노동법 질문을 입력하세요" />
             <button onclick="sendMessage()">전송</button>
         </div>
+
+        {% if not user.is_authenticated %}
+        <div id="loginPopup" class="login-popup">
+            <div class="popup-content">
+                <h3>대화 내용을 저장하고 싶으신가요?</h3>
+                <p>로그인하시면 지금 나눈 대화 기록을 나중에도 확인할 수 있습니다.</p>
+                <div class="popup-btns">
+                    <button class="btn-later" onclick="closePopup()">나중에 하기</button>
+                    <a href="{% url 'account_login' %}" class="btn-go-login">로그인하러 가기</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <script>
         const messages = document.getElementById("messages");
 
-        /* 타이핑 애니메이션 */
         function typeMessage(text, element, speed = 25) {
             let index = 0;
             element.textContent = "";
@@ -132,11 +261,9 @@
             }, speed);
         }
 
-        /* 첫 진입 시 AI 인사 */
         window.onload = () => {
             const botMessage = document.createElement("div");
             botMessage.className = "message bot";
-
             const bubble = document.createElement("div");
             bubble.className = "bubble";
             botMessage.appendChild(bubble);
@@ -146,15 +273,24 @@
                 "안녕하세요 👋\n노동법 AI 챗봇입니다.\n궁금한 노동법 관련 질문을 편하게 입력해 주세요.",
                 bubble
             );
+
+            // 페이지 로드 후 1.5초 뒤에 로그인 팝업 등장
+            setTimeout(() => {
+                const popup = document.getElementById('loginPopup');
+                if (popup) popup.classList.add('show');
+            }, 1500);
         };
 
-        /* 메시지 전송 */
+        function closePopup() {
+            const popup = document.getElementById('loginPopup');
+            if (popup) popup.classList.remove('show');
+        }
+
         function sendMessage() {
             const input = document.getElementById("messageInput");
             const message = input.value.trim();
             if (!message) return;
 
-            // 사용자 메시지
             messages.innerHTML += `
                 <div class="message user">
                     <div class="bubble">${message}</div>
@@ -163,10 +299,8 @@
             input.value = "";
             messages.scrollTop = messages.scrollHeight;
 
-            // 로딩 메시지
             const loadingDiv = document.createElement("div");
             loadingDiv.className = "message bot";
-
             const loadingBubble = document.createElement("div");
             loadingBubble.className = "bubble";
             loadingBubble.textContent = "🤖 AI가 답변을 생성 중입니다...";
@@ -174,7 +308,6 @@
             messages.appendChild(loadingDiv);
             messages.scrollTop = messages.scrollHeight;
 
-            // CSRF 토큰 가져오기
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             fetch("/chat/api/", {
@@ -185,24 +318,16 @@
                 },
                 body: `message=${encodeURIComponent(message)}`
             })
-                .then(res => {
-                    if (!res.ok) {
-                        throw new Error(`서버 오류: ${res.status}`);
-                    }
-                    return res.json();
-                })
+                .then(res => res.json())
                 .then(data => {
                     loadingBubble.textContent = "";
                     typeMessage(data.reply, loadingBubble);
                 })
                 .catch(error => {
-                    loadingBubble.textContent = `⚠️ 오류가 발생했습니다: ${error.message}\n다시 시도해 주세요.`;
-                    console.error("Error:", error);
+                    loadingBubble.textContent = `⚠️ 오류 발생: ${error.message}`;
                 });
-
         }
     </script>
-
 </body>
 
 </html>
