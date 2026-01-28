@@ -1,0 +1,189 @@
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>로그인 | Labor Law Chatbot</title>
+    <style>
+        body {
+            font-family: 'Apple SD Gothic Neo', sans-serif;
+            background: #f9fafb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        h2 {
+            color: #111;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        /* 입력 필드 스타일링 */
+        form p {
+            text-align: left;
+            margin-bottom: 15px;
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            margin-top: 6px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus {
+            border-color: #2563eb;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        .btn-login:hover {
+            background: #1e40af;
+        }
+
+        /* 구분선 */
+        .divider {
+            margin: 30px 0;
+            border-top: 1px solid #f3f4f6;
+            position: relative;
+        }
+
+        .divider span {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 0 12px;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+
+        /* 구글 로그인 버튼 */
+        .btn-google {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            text-decoration: none;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-google:hover {
+            background: #f9fafb;
+        }
+
+        .btn-google img {
+            width: 18px;
+            margin-right: 10px;
+        }
+
+        .footer-links {
+            margin-top: 25px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .footer-links a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* 1. Email:, Password: 같은 기본 라벨 숨기기 */
+        form p label {
+            display: none;
+        }
+
+        /* 2. Remember Me: 체크박스 텍스트 숨기기 (필요한 경우) */
+        form p {
+            font-size: 0;
+            /* 부모 요소의 텍스트 크기를 0으로 하여 텍스트 제거 */
+        }
+
+        /* 3. 입력창 스타일은 유지 (글자 크기 복구) */
+        input {
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-card">
+        <h2>반가워요!</h2>
+        <p class="subtitle">서비스 이용을 위해 로그인이 필요합니다.</p>
+
+        <form method="POST" action="{% url 'account_login' %}">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <button type="submit" class="btn-login">로그인</button>
+        </form>
+
+        <div class="divider"><span>또는</span></div>
+
+        <a href="{% provider_login_url 'google' process='login' %}" class="btn-google">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_Logo.svg" alt=""
+                style="width: 18px; margin-right: 10px;">
+            <span>구글 계정으로 시작하기</span>
+        </a>
+        <div class="footer-links">
+            아직 회원이 아니신가요? <a href="{% url 'account_signup' %}">회원가입</a>
+        </div>
+    </div>
+
+</body>
+
+</html>
