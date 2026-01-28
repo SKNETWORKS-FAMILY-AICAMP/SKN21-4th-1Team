@@ -18,7 +18,7 @@ import asyncio
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import (
-    Annotated, TypedDict, Sequence, Optional, List, Literal, Any
+    Annotated, TypedDict, Sequence, Optional, List, Literal, Dict, Any
 )
 
 # Third-party
@@ -43,6 +43,7 @@ from FlagEmbedding import BGEM3FlagModel
 # LangGraph
 from langgraph.graph.message import add_messages
 from langgraph.graph import StateGraph, END
+from langgraph.graph.state import CompiledStateGraph
 from langchain_core.runnables import RunnableLambda
 
 # LangSmith Tracing
@@ -344,7 +345,7 @@ class VectorStoreManager:
             raise ValueError("QDRANT_API_KEY가 .env에 설정되지 않았습니다!")
 
     def initialize(self):
-        """임베딩 및 비동기 클라이언트 초기화"""
+        """임베딩 모델만 초기화 (Qdrant 연결은 Lazy Loading)"""
         logger.info(f"Loading embedding model: {self.config.EMBEDDING_MODEL}")
         self.embeddings = HuggingFaceEmbeddings(
             model_name=self.config.EMBEDDING_MODEL,
@@ -352,26 +353,35 @@ class VectorStoreManager:
             encode_kwargs={'normalize_embeddings': True}
         )
         logger.info("Embedding model loaded")
+        
+        # Qdrant 연결은 실제 요청 시 수행 (이벤트 루프 충돌 방지)
+        logger.info("Qdrant client will be initialized lazily on first request.")
 
-        logger.info("Connecting to Qdrant (Async)...")
-        warnings.filterwarnings(
-            'ignore', message='Api key is used with an insecure connection')
-
-        self.client = AsyncQdrantClient(
-            url=self.qdrant_url,
-            api_key=self.qdrant_api_key,
-            timeout=self.config.QDRANT_TIMEOUT,
-            prefer_grpc=False
-        )
-        logger.info("Qdrant (Async) connected")
-
-    def get_client(self) -> AsyncQdrantClient:
+    async def get_client(self) -> AsyncQdrantClient:
+        """Qdrant Client Lazy Loading"""
+        if self.client is None:
+            logger.info("Connecting to Qdrant (Async) - Lazy Loading...")
+            warnings.filterwarnings(
+                'ignore', message='Api key is used with an insecure connection')
+            
+            self.client = AsyncQdrantClient(
+                url=self.qdrant_url,
+                api_key=self.qdrant_api_key,
+                timeout=self.config.QDRANT_TIMEOUT,
+                prefer_grpc=False
+            )
+            logger.info("Qdrant (Async) connected")
+            
         return self.client
 
     def get_embeddings(self) -> HuggingFaceEmbeddings:
+        if self.embeddings is None:
+            raise ValueError("Embeddings model is not initialized. Call initialize() first.")
         return self.embeddings
 
     def get_collection_name(self) -> str:
+        if self.collection_name is None:
+            raise ValueError("Collection name is not set in environment variables.")
         return self.collection_name
 
 
@@ -414,6 +424,8 @@ class SparseEmbeddingManager:
             )
             # Dict[str, float] where str is token_id
             weights = output['lexical_weights']
+            if not isinstance(weights, dict):
+                 weights = {}
 
             return models.SparseVector(
                 indices=list(map(int, weights.keys())),
@@ -445,7 +457,7 @@ class LegalRAGBuilder:
         # Vector Store Manager (Async)
         self.vs_manager = VectorStoreManager(self.config)
         self.vs_manager.initialize()
-        self.client = self.vs_manager.get_client()
+        # self.client = self.vs_manager.get_client() # Lazy Loading으로 변경되어 여기서 호출하지 않음
         self.embeddings = self.vs_manager.get_embeddings()
 
         # Sparse Embedding Manager
@@ -470,7 +482,7 @@ class LegalRAGBuilder:
         )
 
     @traceable(run_type="retriever", name="Qdrant Hybrid Search")
-    async def _execute_search(self, dense_vec: List[float], sparse_vec: Optional[models.SparseVector], collection_name: str, limit: int) -> List[Document]:
+    async def _execute_search(self, client: AsyncQdrantClient, dense_vec: List[float], sparse_vec: Optional[models.SparseVector], collection_name: str, limit: int) -> List[Document]:
         """Qdrant 검색 수행 (LangSmith 추적용)"""
         prefetch = [
             models.Prefetch(
@@ -490,7 +502,7 @@ class LegalRAGBuilder:
             )
 
         # Execute Search
-        results = await self.client.query_points(
+        results = await client.query_points(
             collection_name=collection_name,
             prefetch=prefetch,
             query=models.FusionQuery(fusion=models.Fusion.RRF),
@@ -527,7 +539,8 @@ class LegalRAGBuilder:
             try:
                 # Async invoke
                 chain = expansion_prompt | structured_llm
-                result = await chain.ainvoke({"query": query})
+                # Type hint for IDE
+                result: HybridQuery = await chain.ainvoke({"query": query})  # type: ignore
                 logger.info(
                     f"HyDE Query Generated - Keyword: {result.keyword_query[:40]}...")
                 return result
@@ -553,12 +566,12 @@ class LegalRAGBuilder:
             ("human", "{query}")
         ])
 
-        async def analyze_query(state: AgentState) -> AgentState:
+        async def analyze_query(state: AgentState) -> dict:
             query = state["user_query"]
             logger.info(f"Analyzing query: {query[:50]}...")
 
             chain = analyze_prompt | structured_llm
-            analysis: QueryAnalysis = await chain.ainvoke({"query": query})
+            analysis: QueryAnalysis = await chain.ainvoke({"query": query})  # type: ignore
 
             logger.info(
                 f"Analysis: category={analysis.category}, intent={analysis.intent_type}")
@@ -571,7 +584,7 @@ class LegalRAGBuilder:
         """[노드: Clarify] 명확화 요청 노드"""
         template = self.config.TEMPLATE_CLARIFY
 
-        async def request_clarification(state: AgentState) -> AgentState:
+        async def request_clarification(state: AgentState) -> dict:
             analysis = state.get("query_analysis", {})
             clarification_q = analysis.get(
                 "clarification_question", "질문을 좀 더 구체적으로 해주시겠어요?")
@@ -583,7 +596,7 @@ class LegalRAGBuilder:
 
     def _create_search_node(self):
         """하이브리드 검색 노드 (Async + Qdrant Native Hybrid)"""
-        client = self.client
+        # client = self.client  # 여기서는 client를 미리 가져올 수 없음 (Lazy)
         embeddings = self.embeddings
         sparse_manager = self.sparse_manager
         query_expander = self.query_expander
@@ -591,10 +604,13 @@ class LegalRAGBuilder:
         config = self.config
         collection_name = self.vs_manager.get_collection_name()
 
-        async def search_documents(state: AgentState) -> AgentState:
+        async def search_documents(state: AgentState) -> dict:
             original_query = state["user_query"]
             analysis = state.get("query_analysis", {})
             related_laws = analysis.get("related_laws", [])
+
+            # 0. Get Client (Lazy Loading)
+            client = await self.vs_manager.get_client()
 
             # 1. Query Expansion (Async)
             keyword_query = original_query
@@ -626,6 +642,7 @@ class LegalRAGBuilder:
             # 3. Qdrant Native Hybrid Search (Traced)
             try:
                 vector_docs = await self._execute_search(
+                    client=client,
                     dense_vec=dense_vec,
                     sparse_vec=sparse_vec,
                     collection_name=collection_name,
@@ -704,7 +721,7 @@ class LegalRAGBuilder:
 위 자료를 바탕으로 질문에 답변해주세요.""")
         ])
 
-        async def generate_answer(state: AgentState) -> AgentState:
+        async def generate_answer(state: AgentState) -> dict:
             query = state["user_query"]
             docs = state.get("retrieved_docs", [])
             analysis = state.get("query_analysis", {})
@@ -775,7 +792,7 @@ class LegalRAGBuilder:
 평가해주세요.""")
         ])
 
-        async def evaluate_answer(state: AgentState) -> AgentState:
+        async def evaluate_answer(state: AgentState) -> dict:
             query = state["user_query"]
             answer = state.get("generated_answer", "")
             docs = state.get("retrieved_docs", [])
@@ -792,7 +809,7 @@ class LegalRAGBuilder:
                 context_summary = "(검색된 문서 없음)"
 
             chain = evaluate_prompt | structured_llm
-            evaluation: AnswerEvaluation = await chain.ainvoke({
+            evaluation: AnswerEvaluation = await chain.ainvoke({  # type: ignore
                 "query": query,
                 "context_summary": context_summary,
                 "answer": answer
@@ -832,7 +849,7 @@ class LegalRAGBuilder:
 
     # --- Build Graph ---
 
-    def build(self) -> StateGraph:
+    def build(self) -> CompiledStateGraph:
         """LangGraph 빌드"""
         self._init_infrastructure()
 
