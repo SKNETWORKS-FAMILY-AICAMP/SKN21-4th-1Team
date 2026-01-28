@@ -41,7 +41,7 @@ class ChatbotService:
 
 
     async def _initialize(self):
-        # Config 설정
+        # Config 설정ddd
         # 실제 운영 환경에서는 환경 변수 로드가 필요합니다.
         
         config = Config()
