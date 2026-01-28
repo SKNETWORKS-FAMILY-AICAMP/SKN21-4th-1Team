@@ -50,3 +50,15 @@ typing-inspection==0.4.2
 urllib3==2.6.3
 uuid-utils==0.14.0
 zstandard==0.25.0
+uvicorn[standard]
+gunicorn
+uvloop
+langchain
+langgraph
+qdrant-client
+sentence-transformers
+transformers<5.0.0
+torch
+flagembedding
+langchain-huggingface
+einops
