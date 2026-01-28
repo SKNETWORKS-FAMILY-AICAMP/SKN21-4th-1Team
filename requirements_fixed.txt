@@ -8,14 +8,14 @@ sqlparse==0.5.5
 uvicorn[standard]==0.34.2
 # gunicorn==23.0.0  # Unix only - Windows에서는 제외해야 함
 
-# LangChain & AI
-langchain==0.3.24
-langgraph==0.2.72
-langchain-core==1.2.7
-langchain-openai==1.1.7
-langchain-qdrant==1.1.0
-langchain-huggingface==0.1.5
-langsmith==0.6.6
+# LangChain & AI (자동 의존성 해결)
+langchain
+langgraph
+langchain-core
+langchain-openai
+langchain-qdrant
+langchain-huggingface
+langsmith
 
 # Vector DB
 qdrant-client==1.16.2
@@ -26,12 +26,9 @@ sentence-transformers==3.4.1
 flagembedding==1.2.11
 einops==0.8.0
 
-# PyTorch (플랫폼별 설치 권장 - 아래 주석 참조)
-# Mac (CPU/MPS): pip install torch==2.5.1 torchvision==0.20.1
-# Windows (CPU): pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
-# Windows (CUDA 12.1): pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
-torch==2.5.1
-torchvision==0.20.1
+# PyTorch (플랫폼별 최적 버전 자동 설치)
+torch
+torchvision
 
 # OpenAI
 openai==2.16.0
