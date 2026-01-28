@@ -461,17 +461,24 @@ class LegalRAGBuilder:
         self.reranker = None
         self.vs_manager = None
 
+    def set_components(self, vs_manager: 'VectorStoreManager', reranker: 'JinaReranker'):
+        """미리 로딩된 컴포넌트 주입"""
+        self.vs_manager = vs_manager
+        self.reranker = reranker
+
     def _init_infrastructure(self):
         """인프라 초기화"""
         # Vector Store Manager (Async)
-        self.vs_manager = VectorStoreManager(self.config)
-        self.vs_manager.initialize()
-        # self.client = self.vs_manager.get_client() # Lazy Loading으로 변경되어 여기서 호출하지 않음
+        if not self.vs_manager:
+            self.vs_manager = VectorStoreManager(self.config)
+            self.vs_manager.initialize()
+        
         self.embeddings = self.vs_manager.get_embeddings()
 
         # Sparse Embedding Manager
-        self.sparse_manager = SparseEmbeddingManager(self.config)
-        self.sparse_manager.initialize()
+        if not self.sparse_manager:
+            self.sparse_manager = SparseEmbeddingManager(self.config)
+            self.sparse_manager.initialize()
 
         # LLM
         logger.info(f"Initializing LLM: {self.config.LLM_MODEL}")
@@ -485,10 +492,11 @@ class LegalRAGBuilder:
         self.query_expander = self._create_query_expander()
 
         # Reranker
-        self.reranker = JinaReranker(
-            model_name=self.config.RERANKER_MODEL,
-            top_n=self.config.TOP_K_RERANK
-        )
+        if not self.reranker:
+            self.reranker = JinaReranker(
+                model_name=self.config.RERANKER_MODEL,
+                top_n=self.config.TOP_K_RERANK
+            )
 
     @traceable(run_type="retriever", name="Qdrant Hybrid Search")
     async def _execute_search(self, client: AsyncQdrantClient, dense_vec: List[float], sparse_vec: Optional[models.SparseVector], collection_name: str, limit: int) -> List[Document]:
