@@ -366,18 +366,22 @@ class VectorStoreManager:
         # Qdrant 연결은 실제 요청 시 수행 (이벤트 루프 충돌 방지)
         logger.info("Qdrant client will be initialized lazily on first request.")
 
-    async def create_client(self) -> AsyncQdrantClient:
-        """Qdrant Client 생성 (매 요청마다 새로 생성)"""
-        logger.info("Connecting to Qdrant (Async) - New Connection...")
-        warnings.filterwarnings(
-            'ignore', message='Api key is used with an insecure connection')
-        
-        return AsyncQdrantClient(
-            url=self.qdrant_url,
-            api_key=self.qdrant_api_key,
-            timeout=self.config.QDRANT_TIMEOUT,
-            prefer_grpc=self.config.QDRANT_PREFER_GRPC
-        )
+    async def get_client(self) -> AsyncQdrantClient:
+        """Qdrant Client Lazy Loading"""
+        if self.client is None:
+            logger.info("Connecting to Qdrant (Async) - Lazy Loading...")
+            warnings.filterwarnings(
+                'ignore', message='Api key is used with an insecure connection')
+            
+            self.client = AsyncQdrantClient(
+                url=self.qdrant_url,
+                api_key=self.qdrant_api_key,
+                timeout=self.config.QDRANT_TIMEOUT,
+                prefer_grpc=self.config.QDRANT_PREFER_GRPC
+            )
+            logger.info("Qdrant (Async) connected")
+            
+        return self.client
 
     def get_embeddings(self) -> HuggingFaceEmbeddings:
         if self.embeddings is None:
@@ -622,35 +626,38 @@ class LegalRAGBuilder:
             analysis = state.get("query_analysis", {})
             related_laws = analysis.get("related_laws", [])
 
-            # 0. Create Client (Fresh per request)
-            client = await self.vs_manager.create_client()
+            # 0. Get Client (Lazy Loading)
+            client = await self.vs_manager.get_client()
 
+            # 1. Query Expansion (Async)
+            keyword_query = original_query
+            vector_query = original_query
+
+            if query_expander:
+                hybrid = await query_expander(original_query)
+                keyword_query = hybrid.keyword_query
+                # Dense: HyDE 우선, 없으면 semantic_query
+                vector_query = hybrid.hyde_passage if hybrid.hyde_passage else hybrid.semantic_query
+
+                logger.info(f"[Query] Keyword(Sparse): {keyword_query}")
+                logger.info(f"[Query] Vector(Dense): {vector_query[:50]}...")
+
+            # 2. Embedding Generation (Parallel: Dense + Sparse)
+            # Embedding computation is CPU bound, run in thread if needed,
+            # but usually fast enough or we can use asyncio.to_thread
+
+            async def get_dense_vec():
+                return await asyncio.to_thread(embeddings.embed_query, vector_query)
+
+            async def get_sparse_vec():
+                if sparse_manager:
+                    return await asyncio.to_thread(sparse_manager.encode_query, keyword_query)
+                return None
+
+            dense_vec, sparse_vec = await asyncio.gather(get_dense_vec(), get_sparse_vec())
+
+            # 3. Qdrant Native Hybrid Search (Traced)
             try:
-                # 1. Query Expansion (Async)
-                keyword_query = original_query
-                vector_query = original_query
-
-                if query_expander:
-                    hybrid = await query_expander(original_query)
-                    keyword_query = hybrid.keyword_query
-                    # Dense: HyDE 우선, 없으면 semantic_query
-                    vector_query = hybrid.hyde_passage if hybrid.hyde_passage else hybrid.semantic_query
-
-                    logger.info(f"[Query] Keyword(Sparse): {keyword_query}")
-                    logger.info(f"[Query] Vector(Dense): {vector_query[:50]}...")
-
-                # 2. Embedding Generation (Parallel: Dense + Sparse)
-                async def get_dense_vec():
-                    return await asyncio.to_thread(embeddings.embed_query, vector_query)
-
-                async def get_sparse_vec():
-                    if sparse_manager:
-                        return await asyncio.to_thread(sparse_manager.encode_query, keyword_query)
-                    return None
-
-                dense_vec, sparse_vec = await asyncio.gather(get_dense_vec(), get_sparse_vec())
-
-                # 3. Qdrant Native Hybrid Search (Traced)
                 vector_docs = await self._execute_search(
                     client=client,
                     dense_vec=dense_vec,
@@ -666,11 +673,6 @@ class LegalRAGBuilder:
                 import traceback
                 traceback.print_exc()
                 return {"retrieved_docs": []}
-            finally:
-                # Clean up client
-                if client:
-                    await client.close()
-                    # logger.info("Qdrant client closed")
 
             # 4. Reranking (Async wrap or sync)
             if not vector_docs:
