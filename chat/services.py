@@ -72,3 +72,28 @@ class ChatbotService:
         except Exception as e:
             print(f"Error generation response: {e}")
             return f"오류가 발생했습니다: {str(e)}"
+    
+    async def get_response_stream(self, user_message: str):
+        """스트리밍 응답 생성 (4번 최적화)"""
+        if not self._graph:
+            await self._initialize()
+            
+        inputs = {
+            "user_query": user_message,
+            "messages": [("user", user_message)],
+            "retry_count": 0
+        }
+        
+        try:
+            # astream을 사용한 스트리밍
+            async for event in self._graph.astream(inputs):
+                # generate 노드의 출력을 스트리밍
+                if "generated_answer" in event:
+                    answer = event.get("generated_answer", "")
+                    # 답변을 청크로 나눠서 yield
+                    for char in answer:
+                        yield char
+                        
+        except Exception as e:
+            print(f"Error in streaming response: {e}")
+            yield f"오류가 발생했습니다: {str(e)}"
