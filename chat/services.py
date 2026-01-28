@@ -26,6 +26,20 @@ class ChatbotService:
             await cls._instance._initialize()
         return cls._instance
 
+    @classmethod
+    def initialize(cls):
+        """서버 시작 시 호출되는 동기 초기화 메서드"""
+        if cls._instance is None:
+            cls._instance = ChatbotService()
+            cls._instance._sync_initialize()
+            
+    def _sync_initialize(self):
+        config = Config()
+        self._builder = LegalRAGBuilder(config)
+        self._graph = self._builder.build()
+        print("Chatbot Graph Initialized successfully (Sync).")
+
+
     async def _initialize(self):
         # Config 설정
         # 실제 운영 환경에서는 환경 변수 로드가 필요합니다.
