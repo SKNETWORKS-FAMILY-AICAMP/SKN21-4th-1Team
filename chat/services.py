@@ -7,12 +7,12 @@ from django.conf import settings
 # ai_module은 프로젝트 루트에 있으므로 바로 import 가능
 
 try:
-    from ai_module.chatbot_graph_V8_FINAL import LegalRAGBuilder, Config
+    from chat.ai_module.chatbot_graph_V8_FINAL import LegalRAGBuilder, Config
 except ImportError:
     # 경로 문제 발생 시 처리
     import sys
     sys.path.append(str(settings.BASE_DIR))
-    from ai_module.chatbot_graph_V8_FINAL import LegalRAGBuilder, Config
+    from chat.ai_module.chatbot_graph_V8_FINAL import LegalRAGBuilder, Config
 
 class ChatbotService:
     _instance = None
