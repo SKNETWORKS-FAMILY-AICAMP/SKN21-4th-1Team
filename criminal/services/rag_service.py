@@ -16,7 +16,7 @@ def get_retriever():
 
 def get_chain():
     retriever = get_retriever()
-    llm = ChatOpenAI(model_name="gpt-5", api_key=os.getenv("OPENAI_API_KEY"))
+    llm = ChatOpenAI(model_name="gpt-5-mini", api_key=os.getenv("OPENAI_API_KEY"))
     prompt = ChatPromptTemplate.from_template(
         """
             당신은 **형사법** 법령 검색 도움 봇입니다.
