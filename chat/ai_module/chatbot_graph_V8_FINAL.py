@@ -78,16 +78,17 @@ class Config:
     # [2] RAG Settings - 검색 및 처리 설정
     # ═══════════════════════════════════════════════════════════
     VECTOR_DIM: int = 1024
-    TOP_K_VECTOR: int = 20                  # Vector Search k
+    TOP_K_VECTOR: int = 10                  # Vector Search k (20 → 10 최적화)
     TOP_K_RERANK: int = 5                   # Reranker 후 상위 k개
-    TOP_K_FINAL: int = 5                    # 최종 답변 생성에 사용할 문서 수
+    TOP_K_FINAL: int = 3                    # 최종 답변 생성에 사용할 문서 수 (5 → 3 최적화)
     RELEVANCE_THRESHOLD: float = 0.2        # 유사도 임계값
     MAX_RETRY: int = 2                      # 재검색 최대 횟수
 
     # ═══════════════════════════════════════════════════════════
     # [3] Qdrant - 벡터 DB 설정
     # ═══════════════════════════════════════════════════════════
-    QDRANT_TIMEOUT: int = 30
+    QDRANT_TIMEOUT: int = 10                # 30 → 10초로 최적화
+    QDRANT_PREFER_GRPC: bool = True         # gRPC 사용 (더 빠름)
 
     # ═══════════════════════════════════════════════════════════
     # [4] PROMPTS - 노드별 시스템 프롬프트
@@ -118,6 +119,10 @@ class Config:
 ## 분류
 - category: 노동법, 형사법, 민사법, 기타
 - intent_type: 법령조회, 절차문의, 상황판단, 권리확인, 분쟁해결, 일반상담
+- query_complexity: 질문의 난이도 평가
+  * simple: 단순 법령 조회, 정의 확인 (예: "근로기준법 제2조가 뭐야?")
+  * medium: 일반적인 상황 판단, 절차 문의
+  * complex: 복잡한 법적 해석, 여러 법령 비교, 판례 필요
 - search_strategy: 법령우선, 행정해석우선, 판례필수, 종합검색
 - target_doc_types: 법, 시행령, 시행규칙, 행정해석, 판정선례
 
@@ -246,8 +251,11 @@ class JinaReranker(BaseDocumentCompressor):
         logger.info(f"Loading Reranker: {self.model_name} on {self.device}")
         self.tokenizer = AutoTokenizer.from_pretrained(
             self.model_name, trust_remote_code=True)
+        # 모델 양자화 (FP16) - optimization #8
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            self.model_name, trust_remote_code=True, torch_dtype="auto"
+            self.model_name, 
+            trust_remote_code=True, 
+            torch_dtype=torch.float16 if self.device != "cpu" else torch.float32
         )
         self.model.to(self.device)
         self.model.eval()
@@ -307,6 +315,7 @@ class QueryAnalysis(BaseModel):
     intent_type: str = Field(description="질문 의도: 법령조회, 절차문의, 상황판단, 권리확인, 분쟁해결, 일반상담")
     needs_clarification: bool = Field(default=False, description="질문 모호 여부")
     needs_case_law: bool = Field(default=False, description="판례 검색 필요 여부")
+    query_complexity: str = Field(default="medium", description="질문 난이도: simple, medium, complex")
     clarification_question: str = Field(default="", description="명확화 질문")
     user_situation: str = Field(default="", description="사용자 상황 요약")
     core_question: str = Field(default="", description="핵심 질문")
@@ -357,22 +366,18 @@ class VectorStoreManager:
         # Qdrant 연결은 실제 요청 시 수행 (이벤트 루프 충돌 방지)
         logger.info("Qdrant client will be initialized lazily on first request.")
 
-    async def get_client(self) -> AsyncQdrantClient:
-        """Qdrant Client Lazy Loading"""
-        if self.client is None:
-            logger.info("Connecting to Qdrant (Async) - Lazy Loading...")
-            warnings.filterwarnings(
-                'ignore', message='Api key is used with an insecure connection')
-            
-            self.client = AsyncQdrantClient(
-                url=self.qdrant_url,
-                api_key=self.qdrant_api_key,
-                timeout=self.config.QDRANT_TIMEOUT,
-                prefer_grpc=False
-            )
-            logger.info("Qdrant (Async) connected")
-            
-        return self.client
+    async def create_client(self) -> AsyncQdrantClient:
+        """Qdrant Client 생성 (매 요청마다 새로 생성)"""
+        logger.info("Connecting to Qdrant (Async) - New Connection...")
+        warnings.filterwarnings(
+            'ignore', message='Api key is used with an insecure connection')
+        
+        return AsyncQdrantClient(
+            url=self.qdrant_url,
+            api_key=self.qdrant_api_key,
+            timeout=self.config.QDRANT_TIMEOUT,
+            prefer_grpc=self.config.QDRANT_PREFER_GRPC
+        )
 
     def get_embeddings(self) -> HuggingFaceEmbeddings:
         if self.embeddings is None:
@@ -452,17 +457,24 @@ class LegalRAGBuilder:
         self.reranker = None
         self.vs_manager = None
 
+    def set_components(self, vs_manager: 'VectorStoreManager', reranker: 'JinaReranker'):
+        """미리 로딩된 컴포넌트 주입"""
+        self.vs_manager = vs_manager
+        self.reranker = reranker
+
     def _init_infrastructure(self):
         """인프라 초기화"""
         # Vector Store Manager (Async)
-        self.vs_manager = VectorStoreManager(self.config)
-        self.vs_manager.initialize()
-        # self.client = self.vs_manager.get_client() # Lazy Loading으로 변경되어 여기서 호출하지 않음
+        if not self.vs_manager:
+            self.vs_manager = VectorStoreManager(self.config)
+            self.vs_manager.initialize()
+        
         self.embeddings = self.vs_manager.get_embeddings()
 
         # Sparse Embedding Manager
-        self.sparse_manager = SparseEmbeddingManager(self.config)
-        self.sparse_manager.initialize()
+        if not self.sparse_manager:
+            self.sparse_manager = SparseEmbeddingManager(self.config)
+            self.sparse_manager.initialize()
 
         # LLM
         logger.info(f"Initializing LLM: {self.config.LLM_MODEL}")
@@ -476,10 +488,11 @@ class LegalRAGBuilder:
         self.query_expander = self._create_query_expander()
 
         # Reranker
-        self.reranker = JinaReranker(
-            model_name=self.config.RERANKER_MODEL,
-            top_n=self.config.TOP_K_RERANK
-        )
+        if not self.reranker:
+            self.reranker = JinaReranker(
+                model_name=self.config.RERANKER_MODEL,
+                top_n=self.config.TOP_K_RERANK
+            )
 
     @traceable(run_type="retriever", name="Qdrant Hybrid Search")
     async def _execute_search(self, client: AsyncQdrantClient, dense_vec: List[float], sparse_vec: Optional[models.SparseVector], collection_name: str, limit: int) -> List[Document]:
@@ -609,38 +622,35 @@ class LegalRAGBuilder:
             analysis = state.get("query_analysis", {})
             related_laws = analysis.get("related_laws", [])
 
-            # 0. Get Client (Lazy Loading)
-            client = await self.vs_manager.get_client()
+            # 0. Create Client (Fresh per request)
+            client = await self.vs_manager.create_client()
 
-            # 1. Query Expansion (Async)
-            keyword_query = original_query
-            vector_query = original_query
-
-            if query_expander:
-                hybrid = await query_expander(original_query)
-                keyword_query = hybrid.keyword_query
-                # Dense: HyDE 우선, 없으면 semantic_query
-                vector_query = hybrid.hyde_passage if hybrid.hyde_passage else hybrid.semantic_query
-
-                logger.info(f"[Query] Keyword(Sparse): {keyword_query}")
-                logger.info(f"[Query] Vector(Dense): {vector_query[:50]}...")
-
-            # 2. Embedding Generation (Parallel: Dense + Sparse)
-            # Embedding computation is CPU bound, run in thread if needed,
-            # but usually fast enough or we can use asyncio.to_thread
-
-            async def get_dense_vec():
-                return await asyncio.to_thread(embeddings.embed_query, vector_query)
-
-            async def get_sparse_vec():
-                if sparse_manager:
-                    return await asyncio.to_thread(sparse_manager.encode_query, keyword_query)
-                return None
-
-            dense_vec, sparse_vec = await asyncio.gather(get_dense_vec(), get_sparse_vec())
-
-            # 3. Qdrant Native Hybrid Search (Traced)
             try:
+                # 1. Query Expansion (Async)
+                keyword_query = original_query
+                vector_query = original_query
+
+                if query_expander:
+                    hybrid = await query_expander(original_query)
+                    keyword_query = hybrid.keyword_query
+                    # Dense: HyDE 우선, 없으면 semantic_query
+                    vector_query = hybrid.hyde_passage if hybrid.hyde_passage else hybrid.semantic_query
+
+                    logger.info(f"[Query] Keyword(Sparse): {keyword_query}")
+                    logger.info(f"[Query] Vector(Dense): {vector_query[:50]}...")
+
+                # 2. Embedding Generation (Parallel: Dense + Sparse)
+                async def get_dense_vec():
+                    return await asyncio.to_thread(embeddings.embed_query, vector_query)
+
+                async def get_sparse_vec():
+                    if sparse_manager:
+                        return await asyncio.to_thread(sparse_manager.encode_query, keyword_query)
+                    return None
+
+                dense_vec, sparse_vec = await asyncio.gather(get_dense_vec(), get_sparse_vec())
+
+                # 3. Qdrant Native Hybrid Search (Traced)
                 vector_docs = await self._execute_search(
                     client=client,
                     dense_vec=dense_vec,
@@ -656,6 +666,11 @@ class LegalRAGBuilder:
                 import traceback
                 traceback.print_exc()
                 return {"retrieved_docs": []}
+            finally:
+                # Clean up client
+                if client:
+                    await client.close()
+                    # logger.info("Qdrant client closed")
 
             # 4. Reranking (Async wrap or sync)
             if not vector_docs:
@@ -846,6 +861,20 @@ class LegalRAGBuilder:
             return "search"
 
         return "end"
+    
+    def _route_after_generate(self, state: AgentState) -> Literal["evaluate", "end"]:
+        """답변 생성 후 라우팅: 난이도에 따라 평가 단계 조건부 실행"""
+        analysis = state.get("analysis", {})
+        complexity = analysis.get("query_complexity", "medium")
+        
+       # simple 질문은 평가 건너뛰고 바로 종료
+        if complexity == "simple":
+            logger.info("Simple query detected - skipping evaluation")
+            return "end"
+        
+        # medium, complex는 평가 진행
+        logger.info(f"Query complexity: {complexity} - proceeding to evaluation")
+        return "evaluate"
 
     # --- Build Graph ---
 
@@ -876,15 +905,18 @@ class LegalRAGBuilder:
 
         builder.add_edge("clarify", END)
         builder.add_edge("search", "generate")
-        builder.add_edge("generate", "evaluate")
+        
+        # generate → evaluate OR end (난이도에 따라 조건부)
+        builder.add_conditional_edges(
+            "generate",
+            self._route_after_generate,
+            {"evaluate": "evaluate", "end": END}
+        )
 
         builder.add_conditional_edges(
             "evaluate",
             self._route_after_evaluation,
-            {
-                "search": "search",
-                "end": END
-            }
+            {"search": "search", "end": END}
         )
 
         return builder.compile()
