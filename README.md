@@ -224,6 +224,10 @@ LANGCHAIN_TRACING_V2=true
 ```
 
 ---
+# 시스템 아키텍쳐
+
+![시스템 아키텍쳐](docs/system_architecture.png)
+
 
 
 ---
@@ -274,8 +278,6 @@ LANGCHAIN_TRACING_V2=true
 # 🚀 프로젝트 개선 방향
 
 - [ ] 추가 법률 도메인 (형사법, 사회복지법 등)
-- [ ] 실시간 알림 기능 (WebSocket)
-- [ ] 고급 검색 필터
 - [ ] 사용자 피드백 수집 및 모델 개선
 - [ ] 관리자 대시보드 (통계, 질문 분석)
 - [ ] 멀티 언어 지원
