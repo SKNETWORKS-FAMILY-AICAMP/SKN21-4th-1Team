@@ -29,7 +29,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True 
+DEBUG = True
 ALLOWED_HOSTS = ["*"]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -65,6 +65,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -144,16 +145,17 @@ AUTHENTICATION_BACKENDS = (
     "allauth.account.auth_backends.AuthenticationBackend",
 )
 
-LOGIN_REDIRECT_URL = "/chat/"
-ACCOUNT_LOGOUT_REDIRECT_URL = '/' # 로그아웃 후 홈화면으로 이동
+LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "/accounts/login/"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"  # 로그아웃 후 홈화면으로 이동
 
 SOCIALACCOUNT_QUERY_EMAIL = True
-ACCOUNT_LOGIN_METHODS = {'email'}  # 이메일로 로그인
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']  # username 제거!
+ACCOUNT_LOGIN_METHODS = {"email"}  # 이메일로 로그인
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]  # username 제거!
 ACCOUNT_EMAIL_VERIFICATION = "none"  # 이메일 인증 생략 (테스트용)
 
 # HTTP 환경에서도 소셜 로그인이 작동하도록 허용
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # 실제 메일을 보내지 않고 터미널 콘솔에 출력 (개발용)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
