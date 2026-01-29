@@ -11,7 +11,7 @@ def chat(request):
         "chat_history": request.session.get("chat_history", [])
     })
 
-
+#d
 # 채팅 API - 스트리밍 응답 (Async View)
 async def chat_api_streaming(request):
     """스트리밍 응답을 사용한 채팅 API"""
