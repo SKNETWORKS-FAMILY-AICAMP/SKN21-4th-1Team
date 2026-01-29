@@ -74,9 +74,8 @@
     }
 
     .btn-new-chat:hover {
-        background-color: #f9fafb;
-        border-color: #d1d5db;
-        color: #111827;
+        border-color: #2563eb;
+        color: #2563eb;
     }
 
     .session-list {
@@ -135,16 +134,23 @@
         background: white;
     }
 
+    .message-container {
+        width: 100%;
+        max-width: 800px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px
+    }
+
     .messages {
         flex: 1;
         overflow-y: auto;
-        padding: 40px;
+        padding: 40px 24px;
         padding-bottom: 120px;
         /* 입력창 높이만큼 여백 */
         scroll-behavior: smooth;
         display: flex;
-        flex-direction: column;
-        gap: 20px;
+        justify-content: center;
     }
 
     .message {
@@ -366,28 +372,30 @@
     <!-- 메인 채팅 -->
     <div class="chat-container">
         <div class="messages" id="messages">
-            <!-- 초기 웰컴 메시지 -->
-            {% if not chat_history %}
-            <div class="message ai">
-                <div class="message-content-wrapper">
-                    <div class="avatar ai">👨🏽⚖️</div>
-                    <div class="bubble">안녕하세요 👋<br>노동법 AI 챗봇입니다.<br>궁금한 노동법 관련 질문을 편하게 입력해 주세요.</div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- 대화 기록 -->
-            {% for msg in chat_history %}
-            <div class="message {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
-                <div class="message-content-wrapper">
-                    <div class="avatar {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
-                        {% if msg.role == 'user' %}👤{% else %}👨🏽‍⚖️
-                        {% endif %}
+            <div class="message-container">
+                <!-- 초기 웰컴 메시지 -->
+                {% if not chat_history %}
+                <div class="message ai">
+                    <div class="message-content-wrapper">
+                        <div class="avatar ai">👨🏽⚖️</div>
+                        <div class="bubble">안녕하세요 👋<br>노동법 AI 챗봇입니다.<br>궁금한 노동법 관련 질문을 편하게 입력해 주세요.</div>
                     </div>
-                    <div class="bubble">{{ msg.message|linebreaksbr }}</div>
                 </div>
+                {% endif %}
+
+                <!-- 대화 기록 -->
+                {% for msg in chat_history %}
+                <div class="message {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
+                    <div class="message-content-wrapper">
+                        <div class="avatar {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
+                            {% if msg.role == 'user' %}👤{% else %}👨🏽‍⚖️
+                            {% endif %}
+                        </div>
+                        <div class="bubble">{{ msg.message|linebreaksbr }}</div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
 
         <div class="input-area">
