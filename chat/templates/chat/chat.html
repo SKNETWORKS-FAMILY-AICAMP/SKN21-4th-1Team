@@ -13,239 +13,322 @@
         flex-direction: column;
         height: 100vh;
         overflow: hidden;
+        margin: 0;
+        background-color: #f9fafb;
     }
 
-    nav {
-        flex-shrink: 0;
-    }
-
-    .chat-wrapper {
-        flex: 1;
+    /* 네비게이션바 제외한 전체 영역 */
+    .layout-container {
         display: flex;
-        justify-content: center;
-        align-items: center;
-        padding: 20px;
+        flex: 1;
         overflow: hidden;
     }
 
-    .chat-box {
-        width: 800px;
-        height: 600px;
-        background: white;
-        border-radius: 20px;
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
+    /* 사이드바 스타일 */
+    .sidebar {
+        width: 260px;
+        background-color: #202123;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        overflow-y: auto;
+        flex-shrink: 0;
+    }
+
+    .btn-new-chat {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 12px;
+        background-color: transparent;
+        border: 1px solid #ffffff4d;
+        border-radius: 6px;
+        color: white;
+        text-align: left;
+        cursor: pointer;
+        transition: background 0.2s;
+        font-size: 14px;
+        margin-bottom: 20px;
+        text-decoration: none;
+    }
+
+    .btn-new-chat:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .session-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .session-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border-radius: 6px;
+        color: #ececf1;
+        text-decoration: none;
+        font-size: 14px;
+        transition: background 0.2s;
+        cursor: pointer;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .session-item:hover {
+        background-color: #2a2b32;
+    }
+
+    .session-item.active {
+        background-color: #343541;
+    }
+
+    .session-icon {
+        margin-right: 10px;
+        color: #8e8ea0;
+    }
+
+    .session-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* 메인 채팅 영역 */
+    .chat-container {
+        flex: 1;
         display: flex;
         flex-direction: column;
         position: relative;
+        background: white;
     }
 
     .messages {
-        padding: 24px;
         flex: 1;
         overflow-y: auto;
+        padding: 40px;
+        padding-bottom: 120px;
+        /* 입력창 높이만큼 여백 */
+        scroll-behavior: smooth;
     }
 
     .message {
         display: flex;
-        margin-bottom: 10px;
+        margin-bottom: 24px;
+        justify-content: center;
+        /* 중앙 정렬 컨테이너 */
     }
 
-    .bubble {
-        max-width: 70%;
-        padding: 14px 18px;
-        border-radius: 18px;
-        font-size: 14px;
-        line-height: 1.6;
-        white-space: pre-line;
+    .message-content-wrapper {
+        display: flex;
+        max-width: 800px;
+        /* 메시지 최대 너비 */
+        width: 100%;
+        gap: 20px;
     }
 
-    .message.user {
-        justify-content: flex-end;
+    .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 20px;
     }
 
-    .message.bot {
-        justify-content: flex-start;
-    }
-
-    .user .bubble {
-        background: #2563eb;
+    .avatar.user {
+        background: #5436da;
         color: white;
     }
 
-    .bot .bubble {
-        background: #f3f4f6;
-        color: #111;
+    .avatar.ai {
+        background: #10a37f;
+        color: white;
+    }
+
+    .bubble {
+        flex: 1;
+        font-size: 16px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        color: #343541;
+        padding-top: 2px;
+    }
+
+    .input-area {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, #fff 20%);
+        display: flex;
+        justify-content: center;
     }
 
     .input-box {
+        max-width: 800px;
+        width: 100%;
+        position: relative;
         display: flex;
-        padding: 12px;
-        border-top: 1px solid #eee;
-        border-radius: 0 0 20px 20px;
+        align-items: center;
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        padding: 10px 16px;
     }
 
     input {
         flex: 1;
-        padding: 14px 16px;
-        border-radius: 12px;
-        border: 1px solid #ddd;
+        border: none;
         outline: none;
-        font-size: 14px;
+        font-size: 16px;
+        padding: 4px;
+        background: transparent;
+        line-height: 24px;
+        max-height: 200px;
+        resize: none;
     }
 
-    button {
-        margin-left: 10px;
-        padding: 14px 24px;
-        border-radius: 12px;
+    button.send-btn {
+        background: transparent;
         border: none;
-        background: #2563eb;
-        color: white;
+        color: #d1d5db;
         cursor: pointer;
-        font-weight: bold;
-    }
-
-    button:hover {
-        background: #1e40af;
-    }
-
-    .login-popup {
-        height: 200px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translate(-50%, 120%);
-        width: 60%;
-        max-width: 500px;
-        background: white;
-        padding: 25px;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.383);
-        z-index: 1000;
-        text-align: center;
-        transition: transform 0.35s ease-out;
-    }
-
-    .login-popup.show {
-        transform: translate(-50%, 0);
-    }
-
-    .login-popup h3 {
-        margin: 0 0 8px 0;
-        font-size: 18px;
-        color: #111;
-    }
-
-    .login-popup p {
-        margin: 0 0 20px 0;
-        font-size: 14px;
-        color: #6b7280;
-        line-height: 1.5;
-    }
-
-    .popup-btns {
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-    }
-
-    .btn-later {
-        flex: 1;
-        padding: 12px;
-        background: #f3f4f6;
-        color: #4b5563;
-        border-radius: 10px;
-        border: none;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    .btn-go-login {
-        flex: 1;
-        padding: 12px;
-        background: #2563eb;
-        color: white;
-        border-radius: 10px;
-        text-decoration: none;
-        font-weight: 600;
+        padding: 4px;
+        border-radius: 4px;
+        transition: color 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    button.send-btn:hover {
+        background: #ececf1;
+        color: #40414f;
+    }
+
+    input:focus+button.send-btn {
+        color: #2563eb;
+    }
+
+    /* 스크롤바 커스텀 */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="chat-wrapper">
-    <form id="csrf-form" style="display: none;">
-        {% csrf_token %}
-    </form>
+<div class="layout-container">
+    <!-- 사이드바 -->
+    <div class="sidebar">
+        <a href="{% url 'chat' %}" class="btn-new-chat">
+            <span>+</span> 새로운 채팅
+        </a>
 
-    <div class="chat-box">
-        <div class="messages" id="messages"></div>
-
-        <div class="input-box">
-            <input type="text" id="messageInput" placeholder="노동법 질문을 입력하세요" />
-            <button onclick="sendMessage()">전송</button>
+        <div class="session-list">
+            {% for session in sidebar_sessions %}
+            <a href="{% url 'chat_with_session' session.session_id %}"
+                class="session-item {% if session.session_id == current_session_id %}active{% endif %}">
+                <span class="session-icon">💬</span>
+                <span class="session-title">{{ session.title }}</span>
+            </a>
+            {% endfor %}
         </div>
+    </div>
 
-        {% if not user.is_authenticated %}
-        <div id="loginPopup" class="login-popup">
-            <div class="popup-content">
-                <h3>대화 내용을 저장하고 싶으신가요?</h3>
-                <p>로그인하시면 지금 나눈 대화 기록을 나중에도 확인할 수 있습니다.</p>
-                <div class="popup-btns">
-                    <button class="btn-later" onclick="closePopup()">나중에 하기</button>
-                    <a href="{% url 'account_login' %}" class="btn-go-login">로그인하러 가기</a>
+    <!-- 메인 채팅 -->
+    <div class="chat-container">
+        <div class="messages" id="messages">
+            <!-- 초기 웰컴 메시지 (세션 기록이 없을 때만) -->
+            {% if not chat_history %}
+            <div class="message">
+                <div class="message-content-wrapper">
+                    <div class="avatar ai">🤖</div>
+                    <div class="bubble">안녕하세요 👋<br>노동법 AI 챗봇입니다.<br>궁금한 노동법 관련 질문을 편하게 입력해 주세요.</div>
                 </div>
             </div>
+            {% endif %}
+
+            <!-- 대화 기록 -->
+            {% for msg in chat_history %}
+            <div class="message">
+                <div class="message-content-wrapper">
+                    <div class="avatar {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
+                        {% if msg.role == 'user' %}👤{% else %}🤖{% endif %}
+                    </div>
+                    <div class="bubble">{{ msg.message|linebreaksbr }}</div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        {% endif %}
+
+        <div class="input-area">
+            <div class="input-box">
+                <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)" />
+                <button class="send-btn" onclick="sendMessage()">
+                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+                        stroke-linejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     const messages = document.getElementById("messages");
+    let currentSessionId = "{{ current_session_id|default_if_none:'' }}";
 
-    function typeMessage(text, element, speed = 25) {
+    // 자동 스크롤
+    function scrollToBottom() {
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    // 페이지 로드 시 스크롤 하단 이동
+    window.onload = scrollToBottom;
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+        }
+    }
+
+    function typeMessage(text, element, speed = 10) {
         let index = 0;
         element.textContent = "";
         const interval = setInterval(() => {
             if (index < text.length) {
                 element.textContent += text[index++];
-                messages.scrollTop = messages.scrollHeight;
+                scrollToBottom();
             } else {
                 clearInterval(interval);
             }
         }, speed);
-    }
-
-    window.onload = () => {
-        const botMessage = document.createElement("div");
-        botMessage.className = "message bot";
-        const bubble = document.createElement("div");
-        bubble.className = "bubble";
-        botMessage.appendChild(bubble);
-        messages.appendChild(botMessage);
-
-        typeMessage(
-            "안녕하세요 👋\n노동법 AI 챗봇입니다.\n궁금한 노동법 관련 질문을 편하게 입력해 주세요.",
-            bubble
-        );
-
-        // 페이지 로드 후 1.5초 뒤에 로그인 팝업 등장
-        setTimeout(() => {
-            const popup = document.getElementById('loginPopup');
-            if (popup) popup.classList.add('show');
-        }, 1500);
-    };
-
-    function closePopup() {
-        const popup = document.getElementById('loginPopup');
-        if (popup) popup.classList.remove('show');
     }
 
     function sendMessage() {
@@ -253,40 +336,81 @@
         const message = input.value.trim();
         if (!message) return;
 
-        messages.innerHTML += `
-            <div class="message user">
-                <div class="bubble">${message}</div>
+        // 사용자 메시지 추가
+        const userDiv = document.createElement("div");
+        userDiv.className = "message";
+        userDiv.innerHTML = `
+            <div class="message-content-wrapper">
+                <div class="avatar user">👤</div>
+                <div class="bubble">${message.replace(/\n/g, '<br>')}</div>
             </div>
         `;
+        messages.appendChild(userDiv);
         input.value = "";
-        messages.scrollTop = messages.scrollHeight;
+        scrollToBottom();
 
+        // AI 로딩 메시지 추가
         const loadingDiv = document.createElement("div");
-        loadingDiv.className = "message bot";
-        const loadingBubble = document.createElement("div");
-        loadingBubble.className = "bubble";
-        loadingBubble.textContent = "🤖 AI가 답변을 생성 중입니다...";
-        loadingDiv.appendChild(loadingBubble);
+        loadingDiv.className = "message";
+        const bubbleId = "ai-bubble-" + Date.now();
+        loadingDiv.innerHTML = `
+            <div class="message-content-wrapper">
+                <div class="avatar ai">🤖</div>
+                <div class="bubble" id="${bubbleId}">...</div>
+            </div>
+        `;
         messages.appendChild(loadingDiv);
-        messages.scrollTop = messages.scrollHeight;
+        scrollToBottom();
 
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const loadingBubble = document.getElementById(bubbleId);
+
+        // CSRF Token 가져오기
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
 
         fetch("/chat/api/", {
             method: "POST",
             headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "X-CSRFToken": csrfToken
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrftoken
             },
-            body: `message=${encodeURIComponent(message)}`
+            body: JSON.stringify({
+                message: message,
+                session_id: currentSessionId
+            })
         })
             .then(res => res.json())
             .then(data => {
-                loadingBubble.textContent = "";
-                typeMessage(data.reply, loadingBubble);
+                if (data.status === 'success') {
+                    // 세션 ID 업데이트 (첫 대화 시)
+                    if (data.session_id && currentSessionId !== data.session_id) {
+                        currentSessionId = data.session_id;
+                        // URL 변경 (페이지 리로드 없이)
+                        window.history.pushState({}, '', '/chat/' + currentSessionId + '/');
+                    }
+
+                    loadingBubble.textContent = "";
+                    typeMessage(data.reply, loadingBubble, 15);
+                } else {
+                    loadingBubble.textContent = "⚠️ 오류 발생: " + data.message;
+                }
             })
             .catch(error => {
-                loadingBubble.textContent = `⚠️ 오류 발생: ${error.message}`;
+                loadingBubble.textContent = "⚠️ 네트워크 오류";
+                console.error(error);
             });
     }
 </script>
