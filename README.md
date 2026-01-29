@@ -269,6 +269,10 @@ LANGCHAIN_TRACING_V2=true
 
 # 수행 결과 (시연 페이지)
 
+## 로그인 페이지
+<img src="./docs/Account.gif" width="48%"> 
+<img src="./docs/loginsuccess.gif" width="48%"> <img src="./docs/loginsocial.gif" width="48%">
+<img src="./docs/logout.gif" width="48%">
 
 ---
 
