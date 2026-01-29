@@ -151,6 +151,7 @@ class LegalRAGBuilder:
 
         analyze_prompt = ChatPromptTemplate.from_messages([
             ("system", prompts.PROMPT_ANALYZE),
+            MessagesPlaceholder(variable_name="messages"),
             ("human", "{query}")
         ])
 
@@ -159,7 +160,10 @@ class LegalRAGBuilder:
             logger.info(f"Analyzing query: {query[:50]}...")
 
             chain = analyze_prompt | structured_llm
-            analysis: QueryAnalysis = await chain.ainvoke({"query": query})  # type: ignore
+            analysis: QueryAnalysis = await chain.ainvoke({
+                "query": query,
+                "messages": state["messages"]
+            })  # type: ignore
 
             logger.info(
                 f"Analysis: category={analysis.category}, intent={analysis.intent_type}")
@@ -356,6 +360,7 @@ class LegalRAGBuilder:
             else:
                 chain = answer_prompt | llm
                 response = await chain.ainvoke({
+                    "messages": state["messages"],
                     "query": query,
                     "context": context,
                     "case_law_notice": case_law_notice
