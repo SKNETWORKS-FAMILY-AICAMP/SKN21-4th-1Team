@@ -8,7 +8,6 @@
     * {
         box-sizing: border-box;
     }
-
     body {
         display: flex;
         flex-direction: column;
@@ -17,42 +16,29 @@
         margin: 0;
         background-color: #f9fafb;
     }
-
-    /* 헤더 그림자 보강 */
     nav {
         z-index: 50;
         position: relative;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
     }
-
-    /* 네비게이션바 제외한 전체 영역 */
     .layout-container {
         display: flex;
         flex: 1;
         overflow: hidden;
     }
-
-    /* 사이드바 스타일 */
     .sidebar {
         width: 260px;
         background-color: white;
-        /* 배경색 화이트 (또는 투명) */
         border-right: 1px solid #e5e7eb;
-        /* 경계선 추가 */
         box-shadow: 2px 0 12px rgba(0, 0, 0, 0.05);
-        /* 은은한 그림자 */
         color: #374151;
-        /* 글자색 어둡게 */
         display: flex;
         flex-direction: column;
         padding: 20px 10px;
-        /* 패딩 약간 조정 */
         overflow-y: auto;
         flex-shrink: 0;
         z-index: 10;
-        /* 그림자 효과를 위해 z-index 추가 */
     }
-
     .btn-new-chat {
         display: flex;
         align-items: center;
@@ -72,18 +58,15 @@
         text-decoration: none;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
-
     .btn-new-chat:hover {
         border-color: #2563eb;
         color: #2563eb;
     }
-
     .session-list {
         display: flex;
         flex-direction: column;
         gap: 5px;
     }
-
     .session-item {
         display: flex;
         align-items: center;
@@ -98,18 +81,15 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
     .session-item:hover {
         background-color: #dee6ff;
         color: #2563eb;
     }
-
     .session-item.active {
         background-color: #dee6ff;
         color: #2563eb;
         font-weight: 600;
     }
-
     .session-icon {
         margin-right: 10px;
         color: #9ca3af;
@@ -118,14 +98,11 @@
     .session-item.active .session-icon {
         color: #5436da;
     }
-
     .session-title {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
-    /* 메인 채팅 영역 */
     .chat-container {
         flex: 1;
         display: flex;
@@ -153,33 +130,25 @@
         display: flex;
         justify-content: center;
     }
-
     .message {
         display: flex;
         width: 100%;
     }
-
     .message.user {
         justify-content: flex-end;
     }
-
     .message.ai {
         justify-content: flex-start;
     }
-
     .message-content-wrapper {
         display: flex;
         max-width: 70%;
-        /* 말풍선 최대 너비 제한 */
         gap: 12px;
         align-items: flex-end;
-        /* 아래쪽 정렬 (아바타 하단 배치) */
     }
-
     .message.user .message-content-wrapper {
         flex-direction: row-reverse;
     }
-
     .avatar {
         width: 36px;
         height: 36px;
@@ -211,15 +180,12 @@
         word-break: break-word;
     }
 
-
-    /* User Bubble */
     .message.user .bubble {
         background-color: #f3f4f6;
         color: #1f2937;
         border-radius: 18px 18px 0 18px;
     }
 
-    /* AI Bubble */
     .message.ai .bubble {
         background-color: #2e69c6;
         color: white;
@@ -265,8 +231,18 @@
         line-height: 24px;
         max-height: 200px;
         resize: none;
+    }input,
+    textarea {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-size: 16px;
+        padding: 4px;
+        background: transparent;
+        line-height: 24px;
+        max-height: 200px;
+        resize: none;
     }
-
     button.send-btn {
         background: #2563eb;
         border: none;
@@ -303,7 +279,6 @@
         background: #9ca3af;
     }
 
-    /* 로딩 애니메이션 (Typing Indicator) */
     .typing-indicator {
         display: flex;
         align-items: center;
@@ -316,14 +291,12 @@
         width: 6px;
         height: 6px;
         background-color: #2e69c6;
-        /* AI 말풍선 텍스트 색상에 맞춤 (흰색 또는 어두운 파란색) - 여기선 말풍선이 파란색이니 흰색 점 */
         border-radius: 50%;
         animation: typing 1.4s infinite ease-in-out both;
         margin: 0 2px;
         opacity: 0.7;
     }
 
-    /* AI 말풍선 배경이 파란색(#2e69c6)이므로 흰색 점 */
     .message.ai .typing-indicator span {
         background-color: white;
     }
@@ -343,7 +316,6 @@
         100% {
             transform: scale(0);
         }
-
         40% {
             transform: scale(1);
         }
@@ -401,12 +373,16 @@
 
         <div class="input-area">
             <div class="input-box">
-                <input type="text" id="messageInput" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)" />
-                <button class="send-btn" onclick="sendMessage()">
-                    <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+                <textarea id="messageInput" placeholder="메시지를 입력하세요..." onkeydown="handleKeyPress(event)" rows="1"></textarea>
+
+                <button class="send-btn" id="sendBtn" onclick="handleSendOrStop()">
+                    <svg id="sendIcon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
                         stroke-linejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    <svg id="stopIcon" stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="16" width="16" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                        <rect x="6" y="6" width="12" height="12" rx="1"></rect>
                     </svg>
                 </button>
             </div>
@@ -416,6 +392,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
+
+    let abortController = null;
+    let isGenerating = false;
+    let typingInterval = null;   
     const messages = document.getElementById("messages");
     let currentSessionId = "{{ current_session_id|default_if_none:'' }}";
 
@@ -430,8 +410,44 @@
     function handleKeyPress(event) {
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
+            if (!isGenerating) {
+                sendMessage();
+            }
+        }
+    }
+
+    function handleSendOrStop() {
+        if (isGenerating) {
+            stopGeneration();
+        } else {
             sendMessage();
         }
+    }
+
+    function toggleButton(generating) {
+        const sendIcon = document.getElementById("sendIcon");
+        const stopIcon = document.getElementById("stopIcon");
+        
+        if (generating) {
+            sendIcon.style.display = "none";
+            stopIcon.style.display = "block";
+        } else {
+            sendIcon.style.display = "block";
+            stopIcon.style.display = "none";
+        }
+    }
+
+    function stopGeneration() {
+        if (abortController) {
+            abortController.abort();
+            abortController = null;
+        }
+        if (typingInterval) {
+            clearInterval(typingInterval);
+            typingInterval = null;
+        }
+        isGenerating = false;
+        toggleButton(false);
     }
 
     function typeMessage(text, element, speed = 10) {
@@ -498,6 +514,11 @@
 
         const loadingBubble = document.getElementById(bubbleId);
 
+        // 생성 상태로 변경
+        isGenerating = true;
+        toggleButton(true);
+        abortController = new AbortController();
+
         // CSRF Token 가져오기
         function getCookie(name) {
             let cookieValue = null;
@@ -524,7 +545,8 @@
             body: JSON.stringify({
                 message: message,
                 session_id: currentSessionId
-            })
+            }),
+            signal: abortController.signal
         })
             .then(res => res.json())
             .then(data => {
@@ -537,11 +559,22 @@
                     typeMessage(data.reply, loadingBubble, 15);
                 } else {
                     loadingBubble.textContent = "⚠️ 오류 발생: " + data.message;
+                    isGenerating = false;
+                    toggleButton(false);
                 }
             })
             .catch(error => {
-                loadingBubble.textContent = "⚠️ 네트워크 오류";
-                console.error(error);
+                if (error.name === 'AbortError') {
+                    loadingBubble.textContent = "답변이 중단되었습니다.";
+                } else {
+                    loadingBubble.textContent = "⚠️ 네트워크 오류";
+                    console.error(error);
+                }
+                isGenerating = false;
+                toggleButton(false);
+            })
+            .finally(() => {
+                abortController = null;
             });
     }
 </script>
