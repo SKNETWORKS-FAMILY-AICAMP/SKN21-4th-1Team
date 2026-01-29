@@ -616,6 +616,19 @@
     </div>
 </div>
 
+<!-- Custom Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="modal-overlay">
+    <div class="custom-modal">
+        <div class="modal-title">대화 삭제</div>
+        <div class="modal-text" id="modalText">정말 이 대화를 삭제하시나요?
+            한 번 삭제하면 복구할 수 없어요!❌</div>
+        <div class="modal-buttons">
+            <button id="btnCancel" class="modal-btn cancel">취소</button>
+            <button id="btnConfirm" class="modal-btn confirm">삭제</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 
@@ -934,16 +947,4 @@
     }
 </script>
 
-<!-- Custom Delete Confirmation Modal -->
-<div id="deleteConfirmModal" class="modal-overlay">
-    <div class="custom-modal">
-        <div class="modal-title">대화 삭제</div>
-        <div class="modal-text" id="modalText">정말 이 대화를 삭제하시나요?
-            한 번 삭제하면 복구할 수 없어요!❌</div>
-        <div class="modal-buttons">
-            <button id="btnCancel" class="modal-btn cancel">취소</button>
-            <button id="btnConfirm" class="modal-btn confirm">삭제</button>
-        </div>
-    </div>
-</div>
 {% endblock %}
