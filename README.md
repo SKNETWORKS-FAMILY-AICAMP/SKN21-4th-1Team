@@ -168,29 +168,6 @@ SKN21-4TH-1TEAM/
 ```
 
 
-# 배포 구조
-
-### 환경 변수 (.env)
-
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Django Settings
-SERVICE_TARGET=dev
-DJANGO_SECRET_KEY=your_django_secret_key_here
-
-# Qdrant Settings
-QDRANT_API_KEY=your_qdrant_api_key_here
-QDRANT_URL=https://your-qdrant-instance.cloud.qdrant.io/
-QDRANT_COLLECTION_NAME=your_collection_name
-
-# LangSmith Settings
-LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-LANGCHAIN_API_KEY=your_langsmith_api_key_here
-LANGCHAIN_PROJECT="your_project_name"
-LANGCHAIN_TRACING_V2=true
-
-```
 
 ---
 
@@ -223,6 +200,28 @@ docker build -t legal-chatbot .
 docker run -p 8000:8000 legal-chatbot
 ```
 
+
+### 환경 변수 (.env)
+
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Django Settings
+SERVICE_TARGET=dev
+DJANGO_SECRET_KEY=your_django_secret_key_here
+
+# Qdrant Settings
+QDRANT_API_KEY=your_qdrant_api_key_here
+QDRANT_URL=https://your-qdrant-instance.cloud.qdrant.io/
+QDRANT_COLLECTION_NAME=your_collection_name
+
+# LangSmith Settings
+LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+LANGCHAIN_API_KEY=your_langsmith_api_key_here
+LANGCHAIN_PROJECT="your_project_name"
+LANGCHAIN_TRACING_V2=true
+
+```
 
 ---
 
