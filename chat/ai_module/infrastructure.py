@@ -9,6 +9,7 @@ from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, AsyncQdrantClient, models
 from FlagEmbedding import BGEM3FlagModel
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from langsmith import traceable
 
 from .config import Config
 
@@ -56,6 +57,7 @@ class JinaReranker(BaseDocumentCompressor):
         self.model.eval()
         logger.info("Reranker loaded successfully")
 
+    @traceable(run_type="retriever", name="Jina Rerank")
     def compress_documents(
         self, documents: Sequence[Document], query: str, callbacks: Optional[Any] = None
     ) -> Sequence[Document]:
@@ -153,6 +155,31 @@ class VectorStoreManager:
         if self.collection_name is None:
             raise ValueError("Collection name is not set in environment variables.")
         return self.collection_name
+
+    async def check_law_exists(self, law_name: str) -> bool:
+        """Qdrant DB에 특정 법령이 존재하는지 확인"""
+        client = await self.create_client()
+        try:
+            # Filter search (limit=1) to check existence
+            # Payload field: "law_name"
+            # We use 'scroll' or 'count'
+            count_result = await client.count(
+                collection_name=self.collection_name,
+                count_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="law_name",
+                            match=models.MatchValue(value=law_name)
+                        )
+                    ]
+                )
+            )
+            return count_result.count > 0
+        except Exception as e:
+            logger.error(f"Failed to check law existence: {e}")
+            return False
+        finally:
+            await client.close()
 
 
 class SparseEmbeddingManager:
