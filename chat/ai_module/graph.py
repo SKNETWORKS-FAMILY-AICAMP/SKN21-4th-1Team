@@ -300,31 +300,20 @@ class LegalRAGBuilder:
         return search_documents
 
     def _create_generate_node(self):
-        """[노드: Generate] 답변 생성 노드 (Async)"""
+        """[노드: Generate] 답변 생성 노드 (Async) - intent별 프롬프트 적용"""
         llm = self.llm
-        system_prompt = prompts.PROMPT_GENERATE
-        no_results_template = prompts.TEMPLATE_NO_RESULTS
-
-        answer_prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            MessagesPlaceholder(variable_name="messages"),
-            ("human", """사용자 질문: {query}
-
-📚 검색된 법령/문서:
-{context}
-
-{case_law_notice}
-
-위 자료를 바탕으로 질문에 답변해주세요.""")
-        ])
 
         async def generate_answer(state: AgentState) -> dict:
             query = state["user_query"]
             docs = state.get("retrieved_docs", [])
             analysis = state.get("query_analysis", {})
+            
+            # 분석 결과에서 정보 추출
+            intent_type = analysis.get("intent_type", "일반상담")
+            category = analysis.get("category", "노동법")
             needs_case_law = analysis.get("needs_case_law", False)
 
-            logger.info("Generating answer...")
+            logger.info(f"Generating answer for intent: {intent_type}, category: {category}")
 
             # Format context
             if docs:
@@ -355,9 +344,27 @@ class LegalRAGBuilder:
             if needs_case_law:
                 case_law_notice = "⚠️ 참고: 판례 검색이 필요하나 현재 DB에 포함되어 있지 않습니다."
 
+            # ========== 핵심 변경: intent별 프롬프트 선택 ==========
             if not docs:
-                answer = no_results_template
+                # 문서 없음 → category에 따라 템플릿 선택
+                answer = self._generate_no_results_message(category, query, analysis)
             else:
+                # 문서 있음 → intent_type에 따라 프롬프트 선택
+                system_prompt = self._select_prompt_by_intent(intent_type)
+                
+                answer_prompt = ChatPromptTemplate.from_messages([
+                    ("system", system_prompt),
+                    MessagesPlaceholder(variable_name="messages"),
+                    ("human", """사용자 질문: {query}
+
+📚 검색된 법령/문서:
+{context}
+
+{case_law_notice}
+
+위 자료를 바탕으로 질문에 답변해주세요.""")
+                ])
+
                 chain = answer_prompt | llm
                 response = await chain.ainvoke({
                     "messages": state["messages"],
@@ -422,6 +429,55 @@ class LegalRAGBuilder:
             }
 
         return evaluate_answer
+
+    # --- Helper Methods for Prompt Selection ---
+
+    def _select_prompt_by_intent(self, intent_type: str) -> str:
+        """intent_type에 따라 적절한 프롬프트 선택"""
+        prompt_map = {
+            "법령조회": prompts.PROMPT_GENERATE_LAW_LOOKUP,
+            "절차문의": prompts.PROMPT_GENERATE_PROCEDURE,
+            "상황판단": prompts.PROMPT_GENERATE_SITUATION,
+            "권리확인": prompts.PROMPT_GENERATE_RIGHTS,
+            "분쟁해결": prompts.PROMPT_GENERATE_DISPUTE,
+            "일반상담": prompts.PROMPT_GENERATE
+        }
+        selected = prompt_map.get(intent_type, prompts.PROMPT_GENERATE)
+        logger.info(f"Selected prompt for intent '{intent_type}'")
+        return selected
+
+    def _generate_no_results_message(self, category: str, query: str, analysis: dict) -> str:
+        """답변 불가 시 맞춤형 메시지 생성"""
+        
+        # 노동법 외 분야 질문인 경우
+        if category != "노동법":
+            # 질문에서 법령명 추출 시도
+            detected_law = self._extract_law_name(query, analysis)
+            
+            return prompts.TEMPLATE_NO_RESULTS_OUT_OF_SCOPE.format(
+                detected_law=detected_law
+            )
+        
+        # 노동법이지만 검색 결과 없음
+        return prompts.TEMPLATE_NO_RESULTS_NO_DOCS.format(query=query)
+
+    def _extract_law_name(self, query: str, analysis: dict) -> str:
+        """질문에서 법령명 추출 (간단한 휴리스틱)"""
+        import re
+        
+        # related_laws에서 추출
+        related_laws = analysis.get("related_laws", [])
+        if related_laws:
+            return related_laws[0]
+        
+        # 질문 텍스트에서 "~법" 패턴 찾기
+        law_pattern = r'([가-힣]+법)'
+        matches = re.findall(law_pattern, query)
+        if matches:
+            return matches[0]
+        
+        # 기본값
+        return "해당 법령"
 
     # --- Routing ---
 
