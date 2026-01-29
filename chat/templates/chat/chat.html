@@ -109,19 +109,24 @@
     }
 
     .login-popup {
+        height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
         position: fixed;
         bottom: 20px;
         left: 50%;
         transform: translate(-50%, 120%);
-        width: 90%;
+        width: 60%;
         max-width: 500px;
         background: white;
         padding: 25px;
         border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.383);
         z-index: 1000;
         text-align: center;
-        transition: transform 0.4s ease-out;
+        transition: transform 0.35s ease-out;
     }
 
     .login-popup.show {
