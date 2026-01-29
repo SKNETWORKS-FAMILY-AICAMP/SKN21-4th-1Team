@@ -8,6 +8,7 @@
     * {
         box-sizing: border-box;
     }
+
     body {
         display: flex;
         flex-direction: column;
@@ -16,16 +17,19 @@
         margin: 0;
         background-color: #f9fafb;
     }
+
     nav {
         z-index: 50;
         position: relative;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
     }
+
     .layout-container {
         display: flex;
         flex: 1;
         overflow: hidden;
     }
+
     .sidebar {
         width: 260px;
         background-color: white;
@@ -39,6 +43,7 @@
         flex-shrink: 0;
         z-index: 10;
     }
+
     .btn-new-chat {
         display: flex;
         align-items: center;
@@ -58,15 +63,18 @@
         text-decoration: none;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
+
     .btn-new-chat:hover {
         border-color: #2563eb;
         color: #2563eb;
     }
+
     .session-list {
         display: flex;
         flex-direction: column;
         gap: 5px;
     }
+
     .session-item {
         display: flex;
         align-items: center;
@@ -81,15 +89,18 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
     .session-item:hover {
         background-color: #dee6ff;
         color: #2563eb;
     }
+
     .session-item.active {
         background-color: #dee6ff;
         color: #2563eb;
         font-weight: 600;
     }
+
     .session-icon {
         margin-right: 10px;
         color: #9ca3af;
@@ -98,11 +109,13 @@
     .session-item.active .session-icon {
         color: #5436da;
     }
+
     .session-title {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+
     .chat-container {
         flex: 1;
         display: flex;
@@ -130,25 +143,31 @@
         display: flex;
         justify-content: center;
     }
+
     .message {
         display: flex;
         width: 100%;
     }
+
     .message.user {
         justify-content: flex-end;
     }
+
     .message.ai {
         justify-content: flex-start;
     }
+
     .message-content-wrapper {
         display: flex;
         max-width: 70%;
         gap: 12px;
         align-items: flex-end;
     }
+
     .message.user .message-content-wrapper {
         flex-direction: row-reverse;
     }
+
     .avatar {
         width: 36px;
         height: 36px;
@@ -175,9 +194,26 @@
         padding: 12px 16px;
         font-size: 16px;
         line-height: 1.6;
-        white-space: pre-wrap;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         word-break: break-word;
+    }
+
+    .bubble p {
+        margin: 0;
+    }
+
+    .bubble.markdown-msg p {
+        margin: 0;
+    }
+
+    .bubble.markdown-msg p:not(:last-child) {
+        margin-bottom: 8px;
+    }
+
+    .bubble.markdown-msg ul,
+    .bubble.markdown-msg ol {
+        margin: 0;
+        padding-left: 20px;
     }
 
     .message.user .bubble {
@@ -231,7 +267,9 @@
         line-height: 24px;
         max-height: 200px;
         resize: none;
-    }input,
+    }
+
+    input,
     textarea {
         flex: 1;
         border: none;
@@ -243,6 +281,7 @@
         max-height: 200px;
         resize: none;
     }
+
     button.send-btn {
         background: #2563eb;
         border: none;
@@ -316,6 +355,7 @@
         100% {
             transform: scale(0);
         }
+
         40% {
             transform: scale(1);
         }
@@ -344,8 +384,8 @@
 
     <!-- 메인 채팅 -->
     <div class="chat-container">
-        <div class="messages" id="messages">
-            <div class="message-container">
+        <div class="messages">
+            <div class="message-container" id="messages">
                 <!-- 초기 웰컴 메시지 -->
                 {% if not chat_history %}
                 <div class="message ai">
@@ -364,7 +404,7 @@
                             {% if msg.role == 'user' %}👤{% else %}👨🏽‍⚖️
                             {% endif %}
                         </div>
-                        <div class="bubble">{{ msg.message|linebreaksbr }}</div>
+                        <div class="bubble markdown-msg">{{ msg.message }}</div>
                     </div>
                 </div>
                 {% endfor %}
@@ -373,15 +413,18 @@
 
         <div class="input-area">
             <div class="input-box">
-                <textarea id="messageInput" placeholder="메시지를 입력하세요..." onkeydown="handleKeyPress(event)" rows="1"></textarea>
+                <textarea id="messageInput" placeholder="메시지를 입력하세요..." onkeydown="handleKeyPress(event)"
+                    rows="1"></textarea>
 
                 <button class="send-btn" id="sendBtn" onclick="handleSendOrStop()">
-                    <svg id="sendIcon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
-                        stroke-linejoin="round" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
+                    <svg id="sendIcon" stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24"
+                        stroke-linecap="round" stroke-linejoin="round" height="16" width="16"
+                        xmlns="http://www.w3.org/2000/svg">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
-                    <svg id="stopIcon" stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="16" width="16" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                    <svg id="stopIcon" stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24"
+                        height="16" width="16" xmlns="http://www.w3.org/2000/svg" style="display: none;">
                         <rect x="6" y="6" width="12" height="12" rx="1"></rect>
                     </svg>
                 </button>
@@ -395,17 +438,31 @@
 
     let abortController = null;
     let isGenerating = false;
-    let typingInterval = null;   
+    let typingInterval = null;
     const messages = document.getElementById("messages");
     let currentSessionId = "{{ current_session_id|default_if_none:'' }}";
 
     // 자동 스크롤
     function scrollToBottom() {
-        messages.scrollTop = messages.scrollHeight;
+        if (messages.parentElement) {
+            messages.parentElement.scrollTop = messages.parentElement.scrollHeight;
+        }
     }
 
-    // 페이지 로드 시 스크롤 하단 이동
-    window.onload = scrollToBottom;
+    // 페이지 로드 시 스크롤 하단 이동 및 마크다운 렌더링
+    window.onload = function () {
+        const historyBubbles = document.querySelectorAll('.markdown-msg');
+        historyBubbles.forEach(bubble => {
+            const rawText = bubble.textContent;
+            if (typeof marked !== 'undefined' && marked.parse) {
+                bubble.innerHTML = marked.parse(rawText, {
+                    breaks: true,
+                    gfm: true
+                });
+            }
+        });
+        scrollToBottom();
+    };
 
     function handleKeyPress(event) {
         if (event.key === "Enter" && !event.shiftKey) {
@@ -427,7 +484,7 @@
     function toggleButton(generating) {
         const sendIcon = document.getElementById("sendIcon");
         const stopIcon = document.getElementById("stopIcon");
-        
+
         if (generating) {
             sendIcon.style.display = "none";
             stopIcon.style.display = "block";
@@ -459,7 +516,10 @@
             if (index < text.length) {
                 currentText += text[index++];
                 if (typeof marked !== 'undefined' && marked.parse) {
-                    element.innerHTML = marked.parse(currentText);
+                    element.innerHTML = marked.parse(currentText, {
+                        breaks: true,
+                        gfm: true
+                    });
                 } else {
                     element.textContent = currentText;
                 }
@@ -468,7 +528,10 @@
                 clearInterval(interval);
                 // Ensure final consistency
                 if (typeof marked !== 'undefined' && marked.parse) {
-                    element.innerHTML = marked.parse(text);
+                    element.innerHTML = marked.parse(text, {
+                        breaks: true,
+                        gfm: true
+                    });
                 }
             }
         }, speed);
@@ -556,6 +619,7 @@
                         window.history.pushState({}, '', '/chat/' + currentSessionId + '/');
                     }
                     loadingBubble.textContent = "";
+                    loadingBubble.classList.remove("ing");
                     typeMessage(data.reply, loadingBubble, 15);
                 } else {
                     loadingBubble.textContent = "⚠️ 오류 발생: " + data.message;
