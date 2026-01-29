@@ -9,6 +9,7 @@ from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient, AsyncQdrantClient, models
 from FlagEmbedding import BGEM3FlagModel
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from langsmith import traceable
 
 from .config import Config
 
@@ -56,6 +57,7 @@ class JinaReranker(BaseDocumentCompressor):
         self.model.eval()
         logger.info("Reranker loaded successfully")
 
+    @traceable(run_type="retriever", name="Jina Rerank")
     def compress_documents(
         self, documents: Sequence[Document], query: str, callbacks: Optional[Any] = None
     ) -> Sequence[Document]:

@@ -351,11 +351,32 @@ class LegalRAGBuilder:
                 case_law_notice = "⚠️ 참고: 판례 검색이 필요하나 현재 DB에 포함되어 있지 않습니다."
 
             # ========== 핵심 변경: intent별 프롬프트 선택 ==========
-            if not docs:
-                # 문서 없음 → category에 따라 템플릿 선택
+            if category == "기타(일상)":
+                # 일상 대화: PROMPT_DAILY_LIFE 사용 (Context 불필요)
+                daily_prompt = ChatPromptTemplate.from_messages([
+                    ("system", prompts.PROMPT_DAILY_LIFE),
+                    MessagesPlaceholder(variable_name="messages"),
+                    ("human", "{query}")
+                ])
+                chain = daily_prompt | llm
+                response = await chain.ainvoke({
+                    "messages": state["messages"],
+                    "query": query
+                })
+                answer = response.content
+                logger.info("Daily life conversation generated")
+
+            elif category == "노동법 외":
+                # 노동법 외: 검색 생략하고 안내 메시지 반환
                 answer = self._generate_no_results_message(category, query, analysis)
+                logger.info("Out of scope message generated")
+
+            elif not docs:
+                # 노동법이지만 문서 없음 → 일반적인 검색 실패 메시지
+                answer = self._generate_no_results_message(category, query, analysis)
+            
             else:
-                # 문서 있음 → intent_type에 따라 프롬프트 선택
+                # 노동법 + 문서 있음 → RAG 답변 생성
                 system_prompt = self._select_prompt_by_intent(intent_type)
                 
                 answer_prompt = ChatPromptTemplate.from_messages([
@@ -379,8 +400,8 @@ class LegalRAGBuilder:
                     "case_law_notice": case_law_notice
                 })
                 answer = response.content
+                logger.info("Legal RAG Answer generated")
 
-            logger.info("Answer generated")
             return {"generated_answer": answer}
 
         return generate_answer
@@ -487,10 +508,18 @@ class LegalRAGBuilder:
 
     # --- Routing ---
 
-    def _route_after_analysis(self, state: AgentState) -> Literal["clarify", "search"]:
+    def _route_after_analysis(self, state: AgentState) -> Literal["clarify", "search", "generate"]:
         analysis = state.get("query_analysis", {})
+        category = analysis.get("category", "노동법")
+
         if analysis.get("needs_clarification", False):
             return "clarify"
+        
+        # 노동법 외, 기타(일상)은 검색 생략하고 바로 Generate로 이동
+        if category in ["노동법 외", "기타(일상)"]:
+            logger.info(f"Skipping search for category: {category}")
+            return "generate"
+
         return "search"
 
     def _route_after_evaluation(self, state: AgentState) -> Literal["search", "end"]:
@@ -501,18 +530,32 @@ class LegalRAGBuilder:
             logger.warning("Max retry reached")
             return "end"
 
-        if evaluation.get("needs_more_search", False) and evaluation.get("quality_score", 3) <= 2:
-            logger.info("Retrying search...")
+        # Strict Pass Criteria: 3가지 기준 중 하나라도 False면 재검색
+        # 단, needs_more_search가 명시적으로 True인 경우도 포함
+        is_perfect = (
+            evaluation.get("has_legal_basis", False) and
+            evaluation.get("cites_retrieved_docs", False) and
+            evaluation.get("is_relevant", False)
+        )
+
+        if not is_perfect or evaluation.get("needs_more_search", False):
+            logger.info(f"Evaluation failed (Perfect={is_perfect}). Retrying search...")
             return "search"
 
         return "end"
     
     def _route_after_generate(self, state: AgentState) -> Literal["evaluate", "end"]:
-        """답변 생성 후 라우팅: 난이도에 따라 평가 단계 조건부 실행"""
-        analysis = state.get("query_analysis", {}) # Fixed key: was 'analysis' in original, but 'query_analysis' is the state key
+        """답변 생성 후 라우팅: 난이도 및 카테고리에 따라 평가 단계 조건부 실행"""
+        analysis = state.get("query_analysis", {}) 
         complexity = analysis.get("query_complexity", "medium")
+        category = analysis.get("category", "노동법")
         
-        # simple 질문은 평가 건너뛰고 바로 종료
+        # 1. 노동법이 아닌 경우 (일상, 노동법 외) -> 평가 생략
+        if category != "노동법":
+            logger.info(f"Category '{category}' - skipping evaluation")
+            return "end"
+
+        # 2. simple 질문은 평가 건너뛰고 바로 종료
         if complexity == "simple":
             logger.info("Simple query detected - skipping evaluation")
             return "end"
@@ -544,7 +587,8 @@ class LegalRAGBuilder:
             self._route_after_analysis,
             {
                 "clarify": "clarify",
-                "search": "search"
+                "search": "search",
+                "generate": "generate"
             }
         )
 

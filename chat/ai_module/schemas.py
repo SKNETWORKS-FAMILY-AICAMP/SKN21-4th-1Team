@@ -34,7 +34,7 @@ class HybridQuery(BaseModel):
 
 class QueryAnalysis(BaseModel):
     """질문 분석 결과"""
-    category: str = Field(description="법률 분야: 노동법, 형사법, 민사법, 기타")
+    category: str = Field(description="법률 분야: 노동법, 노동법 외, 기타(일상)")
     intent_type: str = Field(description="질문 의도: 법령조회, 절차문의, 상황판단, 권리확인, 분쟁해결, 일반상담")
     needs_clarification: bool = Field(default=False, description="질문 모호 여부")
     needs_case_law: bool = Field(default=False, description="판례 검색 필요 여부")
