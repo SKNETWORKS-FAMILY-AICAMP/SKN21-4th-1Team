@@ -137,6 +137,11 @@ async def chat_api_streaming(request):
 
                     # 스트리밍 모드로 답변 생성
                     async for chunk in bot_service.get_response_stream(user_message, session_id=session_id):
+                        # 클라이언트 연결 종료 확인 (토큰 절약)
+                        if await request.is_disconnected():
+                            print("Client disconnected, stopping generation.")
+                            break
+                            
                         full_answer += chunk
                         yield f"data: {json.dumps({'chunk': chunk, 'status': 'streaming'})}\n\n"
                         await asyncio.sleep(0.01)  # Rate limiting
