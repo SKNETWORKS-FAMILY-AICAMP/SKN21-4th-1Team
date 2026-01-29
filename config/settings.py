@@ -159,3 +159,21 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # 실제 메일을 보내지 않고 터미널 콘솔에 출력 (개발용)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# ============================================================
+# Session 설정 (세션 관리)
+# ============================================================
+# 메모리 기반 세션 저장소 - 서버 재시작 시 모든 세션 삭제
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# 캐시 설정 (메모리에만 저장)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # 브라우저 닫을 때 세션 만료
+SESSION_COOKIE_AGE = 3600  # 세션 유지 시간: 1시간 (초 단위)
+SESSION_SAVE_EVERY_REQUEST = False  # 매 요청마다 저장 안 함 (성능상)
+
