@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}채팅 | Labor Law Chatbot{% endblock %}
 
@@ -17,6 +18,13 @@
         background-color: #f9fafb;
     }
 
+    /* 헤더 그림자 보강 */
+    nav {
+        z-index: 50;
+        position: relative;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    }
+
     /* 네비게이션바 제외한 전체 영역 */
     .layout-container {
         display: flex;
@@ -27,13 +35,22 @@
     /* 사이드바 스타일 */
     .sidebar {
         width: 260px;
-        background-color: #202123;
-        color: white;
+        background-color: white;
+        /* 배경색 화이트 (또는 투명) */
+        border-right: 1px solid #e5e7eb;
+        /* 경계선 추가 */
+        box-shadow: 2px 0 12px rgba(0, 0, 0, 0.05);
+        /* 은은한 그림자 */
+        color: #374151;
+        /* 글자색 어둡게 */
         display: flex;
         flex-direction: column;
-        padding: 10px;
+        padding: 20px 10px;
+        /* 패딩 약간 조정 */
         overflow-y: auto;
         flex-shrink: 0;
+        z-index: 10;
+        /* 그림자 효과를 위해 z-index 추가 */
     }
 
     .btn-new-chat {
@@ -42,20 +59,24 @@
         gap: 10px;
         width: 100%;
         padding: 12px;
-        background-color: transparent;
-        border: 1px solid #ffffff4d;
-        border-radius: 6px;
-        color: white;
+        background-color: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        /* 둥글게 */
+        color: #374151;
         text-align: left;
         cursor: pointer;
-        transition: background 0.2s;
+        transition: all 0.2s;
         font-size: 14px;
         margin-bottom: 20px;
         text-decoration: none;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .btn-new-chat:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: #f9fafb;
+        border-color: #d1d5db;
+        color: #111827;
     }
 
     .session-list {
@@ -68,8 +89,8 @@
         display: flex;
         align-items: center;
         padding: 12px;
-        border-radius: 6px;
-        color: #ececf1;
+        border-radius: 8px;
+        color: #4b5563;
         text-decoration: none;
         font-size: 14px;
         transition: background 0.2s;
@@ -80,16 +101,23 @@
     }
 
     .session-item:hover {
-        background-color: #2a2b32;
+        background-color: #dee6ff;
+        color: #2563eb;
     }
 
     .session-item.active {
-        background-color: #343541;
+        background-color: #dee6ff;
+        color: #2563eb;
+        font-weight: 600;
     }
 
     .session-icon {
         margin-right: 10px;
-        color: #8e8ea0;
+        color: #9ca3af;
+    }
+
+    .session-item.active .session-icon {
+        color: #5436da;
     }
 
     .session-title {
@@ -114,51 +142,85 @@
         padding-bottom: 120px;
         /* 입력창 높이만큼 여백 */
         scroll-behavior: smooth;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
     }
 
     .message {
         display: flex;
-        margin-bottom: 24px;
-        justify-content: center;
-        /* 중앙 정렬 컨테이너 */
+        width: 100%;
+    }
+
+    .message.user {
+        justify-content: flex-end;
+    }
+
+    .message.ai {
+        justify-content: flex-start;
     }
 
     .message-content-wrapper {
         display: flex;
-        max-width: 800px;
-        /* 메시지 최대 너비 */
-        width: 100%;
-        gap: 20px;
+        max-width: 70%;
+        /* 말풍선 최대 너비 제한 */
+        gap: 12px;
+        align-items: flex-end;
+        /* 아래쪽 정렬 (아바타 하단 배치) */
+    }
+
+    .message.user .message-content-wrapper {
+        flex-direction: row-reverse;
     }
 
     .avatar {
-        width: 30px;
-        height: 30px;
-        border-radius: 4px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 20px;
+        font-size: 18px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
 
     .avatar.user {
-        background: #5436da;
+        background: #eceaf4;
         color: white;
     }
 
     .avatar.ai {
-        background: #10a37f;
+        background: #c9dffd;
         color: white;
     }
 
     .bubble {
-        flex: 1;
+        padding: 12px 16px;
         font-size: 16px;
         line-height: 1.6;
         white-space: pre-wrap;
-        color: #343541;
-        padding-top: 2px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        word-break: break-word;
+    }
+
+
+    /* User Bubble */
+    .message.user .bubble {
+        background-color: #f3f4f6;
+        color: #1f2937;
+        border-radius: 18px 18px 0 18px;
+    }
+
+    /* AI Bubble */
+    .message.ai .bubble {
+        background-color: #2e69c6;
+        color: white;
+        border-radius: 18px 18px 18px 0;
+    }
+
+    .message.ai .bubble.ing {
+        display: flex;
     }
 
     .input-area {
@@ -180,9 +242,10 @@
         align-items: center;
         background: white;
         border: 1px solid rgba(0, 0, 0, 0.1);
-        border-radius: 12px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-        padding: 10px 16px;
+        border-radius: 24px;
+        /* 더 둥글게 */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        padding: 12px 20px;
     }
 
     input {
@@ -198,25 +261,21 @@
     }
 
     button.send-btn {
-        background: transparent;
+        background: #2563eb;
         border: none;
-        color: #d1d5db;
+        color: white;
         cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        transition: color 0.2s;
+        padding: 8px;
+        border-radius: 50%;
+        transition: background 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
+        margin-left: 10px;
     }
 
     button.send-btn:hover {
-        background: #ececf1;
-        color: #40414f;
-    }
-
-    input:focus+button.send-btn {
-        color: #2563eb;
+        background: #1e40af;
     }
 
     /* 스크롤바 커스텀 */
@@ -235,6 +294,52 @@
 
     ::-webkit-scrollbar-thumb:hover {
         background: #9ca3af;
+    }
+
+    /* 로딩 애니메이션 (Typing Indicator) */
+    .typing-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 24px;
+    }
+
+    .typing-indicator span {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background-color: #2e69c6;
+        /* AI 말풍선 텍스트 색상에 맞춤 (흰색 또는 어두운 파란색) - 여기선 말풍선이 파란색이니 흰색 점 */
+        border-radius: 50%;
+        animation: typing 1.4s infinite ease-in-out both;
+        margin: 0 2px;
+        opacity: 0.7;
+    }
+
+    /* AI 말풍선 배경이 파란색(#2e69c6)이므로 흰색 점 */
+    .message.ai .typing-indicator span {
+        background-color: white;
+    }
+
+    .typing-indicator span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    @keyframes typing {
+
+        0%,
+        80%,
+        100% {
+            transform: scale(0);
+        }
+
+        40% {
+            transform: scale(1);
+        }
     }
 </style>
 {% endblock %}
@@ -261,11 +366,11 @@
     <!-- 메인 채팅 -->
     <div class="chat-container">
         <div class="messages" id="messages">
-            <!-- 초기 웰컴 메시지 (세션 기록이 없을 때만) -->
+            <!-- 초기 웰컴 메시지 -->
             {% if not chat_history %}
-            <div class="message">
+            <div class="message ai">
                 <div class="message-content-wrapper">
-                    <div class="avatar ai">🤖</div>
+                    <div class="avatar ai">👨🏽⚖️</div>
                     <div class="bubble">안녕하세요 👋<br>노동법 AI 챗봇입니다.<br>궁금한 노동법 관련 질문을 편하게 입력해 주세요.</div>
                 </div>
             </div>
@@ -273,10 +378,11 @@
 
             <!-- 대화 기록 -->
             {% for msg in chat_history %}
-            <div class="message">
+            <div class="message {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
                 <div class="message-content-wrapper">
                     <div class="avatar {% if msg.role == 'user' %}user{% else %}ai{% endif %}">
-                        {% if msg.role == 'user' %}👤{% else %}🤖{% endif %}
+                        {% if msg.role == 'user' %}👤{% else %}👨🏽‍⚖️
+                        {% endif %}
                     </div>
                     <div class="bubble">{{ msg.message|linebreaksbr }}</div>
                 </div>
@@ -338,7 +444,7 @@
 
         // 사용자 메시지 추가
         const userDiv = document.createElement("div");
-        userDiv.className = "message";
+        userDiv.className = "message user";
         userDiv.innerHTML = `
             <div class="message-content-wrapper">
                 <div class="avatar user">👤</div>
@@ -351,12 +457,19 @@
 
         // AI 로딩 메시지 추가
         const loadingDiv = document.createElement("div");
-        loadingDiv.className = "message";
+        loadingDiv.className = "message ai";
+        loadingDiv.style.display = 'flex';
         const bubbleId = "ai-bubble-" + Date.now();
         loadingDiv.innerHTML = `
             <div class="message-content-wrapper">
-                <div class="avatar ai">🤖</div>
-                <div class="bubble" id="${bubbleId}">...</div>
+                <div class="avatar ai">👨🏽‍⚖️</div>
+                <div class="bubble ing" id="${bubbleId}">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
             </div>
         `;
         messages.appendChild(loadingDiv);
@@ -395,13 +508,10 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // 세션 ID 업데이트 (첫 대화 시)
                     if (data.session_id && currentSessionId !== data.session_id) {
                         currentSessionId = data.session_id;
-                        // URL 변경 (페이지 리로드 없이)
                         window.history.pushState({}, '', '/chat/' + currentSessionId + '/');
                     }
-
                     loadingBubble.textContent = "";
                     typeMessage(data.reply, loadingBubble, 15);
                 } else {
