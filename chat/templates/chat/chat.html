@@ -114,6 +114,33 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        flex: 1;
+        /* 제목이 남은 공간 차지 */
+    }
+
+    /* 삭제 버튼 스타일 */
+    .delete-btn {
+        display: none;
+        /* 기본 숨김 */
+        background: none;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 4px;
+        font-size: 12px;
+        margin-left: 5px;
+        border-radius: 4px;
+    }
+
+    .delete-btn:hover {
+        color: #ef4444;
+        /* 빨간색 hover */
+        background-color: #fee2e2;
+    }
+
+    /* 세션 아이템 호버 시 삭제 버튼 표시 */
+    .session-item:hover .delete-btn {
+        display: block;
     }
 
     .chat-container {
@@ -191,9 +218,9 @@
     }
 
     .bubble {
-        padding: 28px 28px;
+        padding: 20px 20px;
         /* 12px 16px -> 24px 28px 로 변경 */
-        font-size: 16px;
+        font-size: 14px;
         line-height: 1.6;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         word-break: break-word;
@@ -423,6 +450,97 @@
             transform: scale(1);
         }
     }
+
+    /* Custom Modal CSS */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .custom-modal {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        max-width: 320px;
+        width: 90%;
+        text-align: center;
+        animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #1f2937;
+    }
+
+    .modal-text {
+        font-size: 14px;
+        color: #4b5563;
+        margin-bottom: 20px;
+        line-height: 1.5;
+        white-space: pre-line;
+        /* \n 줄바꿈 반영 */
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .modal-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: background 0.2s;
+    }
+
+    .modal-btn.cancel {
+        background: #e5e7eb;
+        color: #374151;
+    }
+
+    .modal-btn.cancel:hover {
+        background: #d1d5db;
+    }
+
+    .modal-btn.confirm {
+        background: #ef4444;
+        color: white;
+    }
+
+    .modal-btn.confirm:hover {
+        background: #dc2626;
+    }
 </style>
 {% endblock %}
 
@@ -440,6 +558,8 @@
                 class="session-item {% if session.session_id == current_session_id %}active{% endif %}">
                 <span class="session-icon">💬</span>
                 <span class="session-title">{{ session.title }}</span>
+                <button class="delete-btn" onclick="deleteSession(event, '{{ session.session_id }}')"
+                    title="삭제">🗑️</button>
             </a>
             {% endfor %}
         </div>
@@ -528,6 +648,7 @@
     };
 
     function handleKeyPress(event) {
+        if (event.isComposing) return;
         if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
             if (!isGenerating) {
@@ -570,12 +691,15 @@
         toggleButton(false);
     }
 
-    function typeMessage(text, element, speed = 10) {
+    function typeMessage(text, element, speed = 10, onComplete = null) {
         let index = 0;
         let currentText = "";
         element.innerHTML = "";
 
-        const interval = setInterval(() => {
+        // 기존 인터벌이 있다면 제거 (중복 방지)
+        if (typingInterval) clearInterval(typingInterval);
+
+        typingInterval = setInterval(() => {
             if (index < text.length) {
                 currentText += text[index++];
                 if (typeof marked !== 'undefined' && marked.parse) {
@@ -588,13 +712,19 @@
                 }
                 scrollToBottom();
             } else {
-                clearInterval(interval);
+                clearInterval(typingInterval);
+                typingInterval = null;
                 // Ensure final consistency
                 if (typeof marked !== 'undefined' && marked.parse) {
                     element.innerHTML = marked.parse(text, {
                         breaks: true,
                         gfm: true
                     });
+                }
+
+                // 완료 콜백 실행
+                if (onComplete) {
+                    onComplete();
                 }
             }
         }, speed);
@@ -626,7 +756,7 @@
         loadingDiv.innerHTML = `
             <div class="message-content-wrapper">
                 <div class="avatar ai">👨🏽‍⚖️</div>
-                <div class="bubble ing" id="${bubbleId}">
+                <div class="bubble ing markdown-msg" id="${bubbleId}">
                     <div class="typing-indicator">
                         <span></span>
                         <span></span>
@@ -683,7 +813,11 @@
                     }
                     loadingBubble.textContent = "";
                     loadingBubble.classList.remove("ing");
-                    typeMessage(data.reply, loadingBubble, 15);
+                    typeMessage(data.reply, loadingBubble, 15, () => {
+                        // 타이핑이 끝나면 전송 버튼으로 복귀
+                        isGenerating = false;
+                        toggleButton(false);
+                    });
                 } else {
                     loadingBubble.textContent = "⚠️ 오류 발생: " + data.message;
                     isGenerating = false;
@@ -704,5 +838,112 @@
                 abortController = null;
             });
     }
+
+    // --- Custom Modal Logic ---
+    let pendingDeleteSessionId = null;
+    let pendingNextUrl = null;
+
+    const modalOverlay = document.getElementById('deleteConfirmModal');
+    const modalText = document.getElementById('modalText');
+    const btnCancel = document.getElementById('btnCancel');
+    const btnConfirm = document.getElementById('btnConfirm');
+
+    function openDeleteModal(sessionId, nextUrl) {
+        pendingDeleteSessionId = sessionId;
+        pendingNextUrl = nextUrl;
+        modalOverlay.classList.add('active');
+    }
+
+    function closeDeleteModal() {
+        modalOverlay.classList.remove('active');
+        pendingDeleteSessionId = null;
+        pendingNextUrl = null;
+    }
+
+    btnCancel.addEventListener('click', closeDeleteModal);
+
+    btnConfirm.addEventListener('click', () => {
+        if (pendingDeleteSessionId) {
+            executeDelete(pendingDeleteSessionId, pendingNextUrl);
+        }
+        closeDeleteModal();
+    });
+
+    // 세션 삭제 함수 (버튼 클릭 시 호출)
+    function deleteSession(event, sessionId) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // 다음으로 이동할 URL 계산
+        const sessionItem = event.target.closest('.session-item');
+        let nextRedirectUrl = "{% url 'chat' %}";
+
+        if (sessionItem) {
+            const nextItem = sessionItem.nextElementSibling;
+            if (nextItem && nextItem.classList.contains('session-item')) {
+                nextRedirectUrl = nextItem.getAttribute('href');
+            }
+        }
+
+        // 모달 열기
+        openDeleteModal(sessionId, nextRedirectUrl);
+    }
+
+    // 실제 삭제 실행 함수 (모달 확인 후)
+    function executeDelete(sessionId, nextRedirectUrl) {
+        // CSRF Token 가져오기
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        fetch(`/chat/delete/${sessionId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (sessionId === currentSessionId) {
+                        window.location.href = nextRedirectUrl;
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    alert("삭제 실패: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("오류가 발생했습니다.");
+            });
+    }
 </script>
+
+<!-- Custom Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="modal-overlay">
+    <div class="custom-modal">
+        <div class="modal-title">대화 삭제</div>
+        <div class="modal-text" id="modalText">정말 이 대화를 삭제하시나요?
+            한 번 삭제하면 복구할 수 없어요!❌</div>
+        <div class="modal-buttons">
+            <button id="btnCancel" class="modal-btn cancel">취소</button>
+            <button id="btnConfirm" class="modal-btn confirm">삭제</button>
+        </div>
+    </div>
+</div>
 {% endblock %}

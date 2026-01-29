@@ -233,3 +233,32 @@ async def chat_api(request):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
     return JsonResponse({"status": "error", "message": "Invalid method"}, status=405)
+
+
+# 채팅 세션 삭제 API
+def delete_chat_session(request, session_id):
+    """
+    특정 세션의 대화 내용을 삭제하는 뷰 함수
+    POST 또는 DELETE 요청만 허용합니다.
+    """
+    if request.method not in ["POST", "DELETE"]:
+        return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({"status": "error", "message": "Unauthorized"}, status=401)
+        
+    try:
+        # 현재 로그인한 사용자의 해당 세션 메시지만 삭제 (보안 강화)
+        deleted_count, _ = ChatMessage.objects.filter(
+            user=request.user, 
+            session_id=session_id
+        ).delete()
+        
+        if deleted_count == 0:
+             return JsonResponse({"status": "error", "message": "Session not found or already deleted"}, status=404)
+
+        return JsonResponse({"status": "success", "message": "Session deleted"})
+        
+    except Exception as e:
+        print(f"Error deleting session: {e}")
+        return JsonResponse({"status": "error", "message": str(e)}, status=500)
