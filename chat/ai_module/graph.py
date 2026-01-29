@@ -14,6 +14,24 @@ from .schemas import AgentState, HybridQuery, QueryAnalysis, AnswerEvaluation
 from .infrastructure import VectorStoreManager, SparseEmbeddingManager, JinaReranker
 from . import prompts
 
+# 노동법 목록 imports for fuzzy matching
+import difflib
+import sys
+import os
+
+# 현재 파일 위치: chat/ai_module/graph.py
+# labor_laws_list.py는 프로젝트 루트에 있음
+try:
+    from labor_laws_list import LABOR_LAWS_UNIQUE
+except ImportError:
+    # 경로 문제 발생 시 처리 (백업)
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    try:
+        from labor_laws_list import LABOR_LAWS_UNIQUE
+    except ImportError:
+        logger.warning("Failed to import LABOR_LAWS_UNIQUE. Suggestion feature disabled.")
+        LABOR_LAWS_UNIQUE = []
+
 logger = logging.getLogger("LegalRAG-V8")
 
 # ============================================================
@@ -171,6 +189,57 @@ class LegalRAGBuilder:
             return {"query_analysis": analysis.model_dump()}
 
         return analyze_query
+
+    def _create_verify_law_node(self):
+        """[노드: Verify Law] 법령 존재 여부 검증 (Async)"""
+        
+        async def verify_law(state: AgentState) -> dict:
+            analysis = state.get("query_analysis", {})
+            related_laws = analysis.get("related_laws", [])
+            query = state["user_query"]
+            
+            # 1. 법령 언급이 없거나 노동법이 아니면 패스
+            if not related_laws or analysis.get("category") != "노동법":
+                return {"next_action": "search"}
+
+            # 2. 첫 번째 법령에 대해 검증 (복수 법령일 경우 첫번째만 체크하거나 루프)
+            target_law = related_laws[0]
+            
+            # DB (or List) Check
+            exists = False
+            
+            # 2-1. Static List Check (1차, 빠름)
+            if target_law in LABOR_LAWS_UNIQUE:
+                exists = True
+            else:
+                # 2-2. DB Check (2차, 확실)
+                # target_law가 정확하지 않을 수 있으므로 DB 확인
+                exists = await self.vs_manager.check_law_exists(target_law)
+            
+            if exists:
+                logger.info(f"Law verification passed: {target_law}")
+                return {"next_action": "search"}
+            else:
+                logger.info(f"Law verification failed: {target_law}")
+                
+                # 3. 유사 법령 찾기
+                suggestions = difflib.get_close_matches(target_law, LABOR_LAWS_UNIQUE, n=3, cutoff=0.4)
+                
+                if suggestions:
+                    suggestion_str = ", ".join([f"'{s}'" for s in suggestions])
+                    msg = f"죄송합니다, 말씀하신 **'{target_law}'**은(는) 데이터베이스에서 찾을 수 없습니다.\n혹시 **{suggestion_str}**을(를) 말씀하시는 건가요?"
+                else:
+                    msg = f"죄송합니다, 말씀하신 **'{target_law}'**은(는) 현재 노동법 데이터베이스에 등록되어 있지 않습니다. 정확한 법령명을 확인해 주시겠어요?"
+                
+                # Update analysis to trigger clarification
+                # Note: We return generated_answer directly to show to user, 
+                # effectively bypassing search/generate nodes, acting like clarification
+                return {
+                    "generated_answer": msg,
+                    "next_action": "clarify_end" # Custom signal to end
+                }
+
+        return verify_law
 
     def _create_clarify_node(self):
         """[노드: Clarify] 명확화 요청 노드"""
@@ -508,7 +577,7 @@ class LegalRAGBuilder:
 
     # --- Routing ---
 
-    def _route_after_analysis(self, state: AgentState) -> Literal["clarify", "search", "generate"]:
+    def _route_after_analysis(self, state: AgentState) -> Literal["clarify", "search", "generate", "verify_law"]:
         analysis = state.get("query_analysis", {})
         category = analysis.get("category", "노동법")
 
@@ -520,6 +589,14 @@ class LegalRAGBuilder:
             logger.info(f"Skipping search for category: {category}")
             return "generate"
 
+        # 노동법인 경우 Law Verification 단계 거침
+        return "verify_law"
+
+    def _route_after_verify(self, state: AgentState) -> Literal["search", "end"]:
+        """검증 후 라우팅"""
+        next_action = state.get("next_action", "search")
+        if next_action == "clarify_end":
+            return "end" # 이미 generated_answer에 안내 메시지가 있음
         return "search"
 
     def _route_after_evaluation(self, state: AgentState) -> Literal["search", "end"]:
@@ -574,6 +651,7 @@ class LegalRAGBuilder:
 
         # Nodes
         builder.add_node("analyze", self._create_analyze_node())
+        builder.add_node("verify_law", self._create_verify_law_node())
         builder.add_node("clarify", self._create_clarify_node())
         builder.add_node("search", self._create_search_node())
         builder.add_node("generate", self._create_generate_node())
@@ -587,12 +665,24 @@ class LegalRAGBuilder:
             self._route_after_analysis,
             {
                 "clarify": "clarify",
-                "search": "search",
-                "generate": "generate"
+                "search": "search",     # Fallback (old)
+                "generate": "generate",
+                "verify_law": "verify_law"
             }
         )
 
         builder.add_edge("clarify", END)
+        
+        # Verify Law -> Search or End
+        builder.add_conditional_edges(
+            "verify_law",
+            self._route_after_verify,
+            {
+                "search": "search",
+                "end": END
+            }
+        )
+        
         builder.add_edge("search", "generate")
         
         # generate → evaluate OR end (난이도에 따라 조건부)

@@ -156,6 +156,31 @@ class VectorStoreManager:
             raise ValueError("Collection name is not set in environment variables.")
         return self.collection_name
 
+    async def check_law_exists(self, law_name: str) -> bool:
+        """Qdrant DB에 특정 법령이 존재하는지 확인"""
+        client = await self.create_client()
+        try:
+            # Filter search (limit=1) to check existence
+            # Payload field: "law_name"
+            # We use 'scroll' or 'count'
+            count_result = await client.count(
+                collection_name=self.collection_name,
+                count_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(
+                            key="law_name",
+                            match=models.MatchValue(value=law_name)
+                        )
+                    ]
+                )
+            )
+            return count_result.count > 0
+        except Exception as e:
+            logger.error(f"Failed to check law existence: {e}")
+            return False
+        finally:
+            await client.close()
+
 
 class SparseEmbeddingManager:
     """Sparse Embedding (BGE-M3) 관리"""
