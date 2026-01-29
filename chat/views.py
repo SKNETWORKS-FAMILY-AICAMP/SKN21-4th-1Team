@@ -2,6 +2,8 @@ from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 import json
 import asyncio
+import uuid
+from django.db.models import F
 from .services import ChatbotService
 from .models import ChatMessage
 
@@ -134,7 +136,7 @@ async def chat_api_streaming(request):
                     yield f"data: {json.dumps({'status': 'session_init', 'session_id': session_id})}\n\n"
 
                     # 스트리밍 모드로 답변 생성
-                    async for chunk in bot_service.get_response_stream(user_message):
+                    async for chunk in bot_service.get_response_stream(user_message, session_id=session_id):
                         full_answer += chunk
                         yield f"data: {json.dumps({'chunk': chunk, 'status': 'streaming'})}\n\n"
                         await asyncio.sleep(0.01)  # Rate limiting
@@ -200,7 +202,7 @@ async def chat_api(request):
                     session_id=session_id,
                 )
 
-            answer = await bot_service.get_response(user_message)
+            answer = await bot_service.get_response(user_message, session_id=session_id)
 
             # AI 답변 저장
             if request.user.is_authenticated:
