@@ -116,78 +116,51 @@ async def chat_api_streaming(request):
                     {"status": "error", "message": "Empty message"}, status=400
                 )
 
-            # 사용자 메시지 먼저 저장 (동기화 보장)
-            if request.user.is_authenticated:
-                await asyncio.to_thread(
-                    ChatMessage.objects.create,
-                    user=request.user,
-                    role="user",
-                    message=user_message,
-                    session_id=session_id,
-                )
-
-            # 비동기 통신을 위한 큐 생성
-            queue = asyncio.Queue()
-
-            # 백그라운드 생성 작업 함수
-            async def generate_response_task(user, uid, msg):
-                full_ans = ""
+            # 스트리밍 응답 생성
+            async def stream_generator():
+                full_answer = ""  # 전체 답변 저장용
                 try:
                     bot_service = await ChatbotService.get_instance()
-                    
-                    # 스트리밍 생성
-                    async for chunk in bot_service.get_response_stream(msg, session_id=uid):
-                        full_ans += chunk
-                        await queue.put({"type": "chunk", "data": chunk})
-                    
-                    # AI 답변 DB 저장 (유저가 페이지를 떠나도 실행됨)
-                    if user.is_authenticated:
+
+                    # 사용자 메시지 저장
+                    if request.user.is_authenticated:
                         await asyncio.to_thread(
                             ChatMessage.objects.create,
-                            user=user,
-                            role="ai",
-                            message=full_ans,
-                            session_id=uid,
+                            user=request.user,
+                            role="user",
+                            message=user_message,
+                            session_id=session_id,
                         )
-                    
-                    await queue.put({"type": "done", "data": full_ans})
-                    
+
+                    # session_id 전송 (첫 응답 시 클라이언트가 알 수 있도록)
+                    yield f"data: {json.dumps({'status': 'session_init', 'session_id': session_id})}\n\n"
+
+                    # 스트리밍 모드로 답변 생성
+                    async for chunk in bot_service.get_response_stream(user_message, session_id=session_id):
+                        # 클라이언트 연결 종료 확인 (토큰 절약)
+                        if await request.is_disconnected():
+                            print("Client disconnected, stopping generation.")
+                            break
+                            
+                        full_answer += chunk
+                        yield f"data: {json.dumps({'chunk': chunk, 'status': 'streaming'})}\n\n"
+                        await asyncio.sleep(0.01)  # Rate limiting
+
+                    # AI 답변 저장
+                    if request.user.is_authenticated:
+                        await asyncio.to_thread(
+                            ChatMessage.objects.create,
+                            user=request.user,
+                            role="ai",
+                            message=full_answer,
+                            session_id=session_id,
+                        )
+
+                    # 완료 메시지 전송
+                    yield f"data: {json.dumps({'status': 'done', 'full_answer': full_answer})}\n\n"
+
                 except Exception as e:
-                    print(f"Background generation error: {e}")
-                    await queue.put({"type": "error", "data": str(e)})
-                finally:
-                    await queue.put(None) # 종료 신호
-
-            # 백그라운드 작업 시작 (클라이언트 연결 여부와 상관없이 계속 실행됨)
-            asyncio.create_task(generate_response_task(request.user, session_id, user_message))
-
-            # SSE 응답 제너레이터 (클라이언트에게 큐의 데이터를 전달)
-            async def stream_generator():
-                # 초기 세션 정보 전송
-                yield f"data: {json.dumps({'status': 'session_init', 'session_id': session_id})}\n\n"
-                
-                while True:
-                    # 큐에서 데이터 가져오기 (대기)
-                    item = await queue.get()
-                    
-                    if item is None: # 종료 신호
-                        break
-                        
-                    if item["type"] == "chunk":
-                        # 클라이언트가 연결된 경우에만 전송
-                        if not await request.is_disconnected():
-                            yield f"data: {json.dumps({'chunk': item['data'], 'status': 'streaming'})}\n\n"
-                    
-                    elif item["type"] == "done":
-                        if not await request.is_disconnected():
-                            yield f"data: {json.dumps({'status': 'done', 'full_answer': item['data']})}\n\n"
-                    
-                    elif item["type"] == "error":
-                        if not await request.is_disconnected():
-                            yield f"data: {json.dumps({'status': 'error', 'message': item['data']})}\n\n"
-                    
-                    # 연결이 끊겨도 loop는 계속 돌면서 queue를 비워줘야 task가 막히지 않음
-                    # (Queue 사이즈가 무한대라면 상관없지만, 소비해주는 것이 좋음)
+                    yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
 
             return StreamingHttpResponse(
                 stream_generator(), content_type="text/event-stream"
