@@ -19,8 +19,8 @@ class Config:
     # [2] RAG Settings
     # ═══════════════════════════════════════════════════════════
     VECTOR_DIM: int = getattr(settings, "VECTOR_DIM", 1024)
-    TOP_K_VECTOR: int = getattr(settings, "TOP_K_VECTOR", 10)
-    TOP_K_RERANK: int = getattr(settings, "TOP_K_RERANK", 5)
+    TOP_K_VECTOR: int = getattr(settings, "TOP_K_VECTOR", 7)  # 10 → 7
+    TOP_K_RERANK: int = getattr(settings, "TOP_K_RERANK", 3)  # 5 → 3
     TOP_K_FINAL: int = getattr(settings, "TOP_K_FINAL", 3)
     RELEVANCE_THRESHOLD: float = getattr(settings, "RELEVANCE_THRESHOLD", 0.2)
     MAX_RETRY: int = getattr(settings, "MAX_RETRY", 2)

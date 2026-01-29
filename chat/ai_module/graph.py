@@ -212,14 +212,20 @@ class LegalRAGBuilder:
                 keyword_query = original_query
                 vector_query = original_query
 
-                if query_expander:
+                complexity = analysis.get("query_complexity", "medium")
+
+                if complexity == "simple":
+                    # Simple 질문은 Query Expansion 생략
+                    keyword_query = original_query
+                    vector_query = original_query
+                    logger.info("Simple query - skipping query expansion")
+                elif query_expander:
                     hybrid = await query_expander(original_query)
                     keyword_query = hybrid.keyword_query
-                    # Dense: HyDE 우선, 없으면 semantic_query
                     vector_query = hybrid.hyde_passage if hybrid.hyde_passage else hybrid.semantic_query
 
-                    logger.info(f"[Query] Keyword(Sparse): {keyword_query}")
-                    logger.info(f"[Query] Vector(Dense): {vector_query[:50]}...")
+                logger.info(f"[Query] Keyword(Sparse): {keyword_query}")
+                logger.info(f"[Query] Vector(Dense): {vector_query[:50]}...")
 
                 # 2. Embedding Generation (Parallel: Dense + Sparse)
                 async def get_dense_vec():
