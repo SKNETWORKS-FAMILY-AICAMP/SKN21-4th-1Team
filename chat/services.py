@@ -1,4 +1,5 @@
 import sys
+import asyncio
 from pathlib import Path
 from django.conf import settings
 
@@ -84,13 +85,42 @@ class ChatbotService:
 
 
 
-    async def get_response(self, user_message: str):
+    async def get_response(self, user_message: str, session_id: str = None):
         if not self._graph:
             await self._async_graph_build()
             
+        # 1. 히스토리 로딩 (세션 ID가 있을 경우)
+        history_messages = []
+        if session_id:
+            try:
+                # Lazy import to avoid circular dependency
+                from .models import ChatMessage
+                from langchain_core.messages import HumanMessage, AIMessage
+                
+                # 최근 10개 대화 가져오기 (시간 역순 -> 정순 정렬)
+                recent_msgs = await asyncio.to_thread(
+                    lambda: list(ChatMessage.objects.filter(session_id=session_id)
+                                 .order_by('-created_at')[:11])
+                )
+                
+                # 중복 방지 (방금 입력한 메시지 제외)
+                if recent_msgs and recent_msgs[0].message == user_message and recent_msgs[0].role == 'user':
+                    recent_msgs = recent_msgs[1:]
+                
+                recent_msgs.reverse()
+                
+                for msg in recent_msgs:
+                    if msg.role == 'user':
+                        history_messages.append(HumanMessage(content=msg.message))
+                    elif msg.role == 'ai':
+                        history_messages.append(AIMessage(content=msg.message))
+                        
+            except Exception as e:
+                print(f"Failed to load history: {e}")
+
         inputs = {
             "user_query": user_message, 
-            "messages": [("user", user_message)],
+            "messages": history_messages,
             "retry_count": 0
         }
         
@@ -105,14 +135,39 @@ class ChatbotService:
             print(f"Error generation response: {e}")
             return f"오류가 발생했습니다: {str(e)}"
     
-    async def get_response_stream(self, user_message: str):
+    async def get_response_stream(self, user_message: str, session_id: str = None):
         """스트리밍 응답 생성 (4번 최적화)"""
         if not self._graph:
             await self._async_graph_build()
+
+        # 1. 히스토리 로딩
+        history_messages = []
+        if session_id:
+            try:
+                from .models import ChatMessage
+                from langchain_core.messages import HumanMessage, AIMessage
+                
+                recent_msgs = await asyncio.to_thread(
+                    lambda: list(ChatMessage.objects.filter(session_id=session_id)
+                                 .order_by('-created_at')[:11])
+                )
+                
+                if recent_msgs and recent_msgs[0].message == user_message and recent_msgs[0].role == 'user':
+                    recent_msgs = recent_msgs[1:]
+                
+                recent_msgs.reverse()
+                
+                for msg in recent_msgs:
+                    if msg.role == 'user':
+                        history_messages.append(HumanMessage(content=msg.message))
+                    elif msg.role == 'ai':
+                        history_messages.append(AIMessage(content=msg.message))
+            except Exception as e:
+                print(f"Failed to load history: {e}")
             
         inputs = {
             "user_query": user_message,
-            "messages": [("user", user_message)],
+            "messages": history_messages,
             "retry_count": 0
         }
         

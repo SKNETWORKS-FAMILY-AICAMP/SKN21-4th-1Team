@@ -8,6 +8,8 @@ class ChatMessage(models.Model):
     )
 
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    user = models.ForeignKey("auth.User", on_delete=models.CASCADE, null=True)
+    session_id = models.CharField(max_length=100, db_index=True, null=True, blank=True)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 

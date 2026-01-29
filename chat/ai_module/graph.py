@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from typing import Literal, List, Optional
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langchain_core.documents import Document
 from langgraph.graph import StateGraph, END
@@ -303,6 +303,7 @@ class LegalRAGBuilder:
 
         answer_prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt),
+            MessagesPlaceholder(variable_name="messages"),
             ("human", """사용자 질문: {query}
 
 📚 검색된 법령/문서:
