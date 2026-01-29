@@ -177,3 +177,25 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # 브라우저 닫을 때 세션 만료
 SESSION_COOKIE_AGE = 3600  # 세션 유지 시간: 1시간 (초 단위)
 SESSION_SAVE_EVERY_REQUEST = False  # 매 요청마다 저장 안 함 (성능상)
 
+
+# ============================================================
+# Logging Configuration
+# ============================================================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'LegalRAG-V8': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+
