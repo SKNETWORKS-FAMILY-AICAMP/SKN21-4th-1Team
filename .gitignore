@@ -1,8 +1,6 @@
 .env
 .env/
 .DS_Store
-.venv
-__pycache__
-.env
-
+.venv/
+__pycache__/
 db.sqlite3
