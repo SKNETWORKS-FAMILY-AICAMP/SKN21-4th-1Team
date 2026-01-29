@@ -168,6 +168,9 @@ SKN21-4TH-1TEAM/
 ```
 
 
+![시스템 아키텍쳐](docs/system_architecture.png)
+
+
 
 ---
 
@@ -222,12 +225,6 @@ LANGCHAIN_PROJECT="your_project_name"
 LANGCHAIN_TRACING_V2=true
 
 ```
-
----
-# 시스템 아키텍쳐
-
-![시스템 아키텍쳐](docs/system_architecture.png)
-
 
 
 ---
