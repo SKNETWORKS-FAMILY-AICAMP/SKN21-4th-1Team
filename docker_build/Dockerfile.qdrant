@@ -1,0 +1,5 @@
+FROM qdrant/qdrant:latest
+
+VOLUME ["/qdrant/storage"]
+
+CMD ["qdrant", "--storage-path", "/qdrant/storage"]
