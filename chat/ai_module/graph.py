@@ -268,8 +268,16 @@ class LegalRAGBuilder:
         # vs_manager.get_collection_name() retrieves it
         
         async def search_documents(state: AgentState) -> dict:
-            original_query = state["user_query"]
+            # Analyze 단계에서 재구성된 core_question이 있다면 그것을 검색 쿼리로 사용
             analysis = state.get("query_analysis", {})
+            original_query = analysis.get("core_question")
+            
+            # core_question이 없으면(Analyze 실패 등) 사용자 원문 사용
+            if not original_query:
+                original_query = state["user_query"]
+                
+            logger.info(f"Searching with query: {original_query}")
+            
             related_laws = analysis.get("related_laws", [])
             collection_name = self.vs_manager.get_collection_name()
 

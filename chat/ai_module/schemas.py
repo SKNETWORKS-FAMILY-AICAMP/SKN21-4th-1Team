@@ -41,7 +41,7 @@ class QueryAnalysis(BaseModel):
     query_complexity: str = Field(default="medium", description="질문 난이도: simple, medium, complex")
     clarification_question: str = Field(default="", description="명확화 질문")
     user_situation: str = Field(default="", description="사용자 상황 요약")
-    core_question: str = Field(default="", description="핵심 질문")
+    core_question: str = Field(default="", description="사용자가 최종적으로 알고싶어하는 핵심 질문")
     related_laws: List[str] = Field(default_factory=list, description="관련 법률명")
 
 
