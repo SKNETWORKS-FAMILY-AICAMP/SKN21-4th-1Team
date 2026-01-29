@@ -7,13 +7,13 @@ from django.conf import settings
 # ai_module은 프로젝트 루트에 있으므로 바로 import 가능
 
 try:
-    from chat.ai_module.chatbot_graph_V8_FINAL import LegalRAGBuilder, Config, VectorStoreManager
+    from chat.ai_module import LegalRAGBuilder, Config, VectorStoreManager
 
 except ImportError:
     # 경로 문제 발생 시 처리
     import sys
     sys.path.append(str(settings.BASE_DIR))
-    from chat.ai_module.chatbot_graph_V8_FINAL import LegalRAGBuilder, Config, VectorStoreManager
+    from chat.ai_module import LegalRAGBuilder, Config, VectorStoreManager
 
 
 class ChatbotService:
@@ -53,7 +53,7 @@ class ChatbotService:
         self._vs_manager.initialize()
         
         # 2. 리랭커
-        from chat.ai_module.chatbot_graph_V8_FINAL import JinaReranker
+        from chat.ai_module import JinaReranker
         self._reranker = JinaReranker(
             model_name=config.RERANKER_MODEL,
             top_n=config.TOP_K_RERANK
