@@ -145,7 +145,7 @@ AUTHENTICATION_BACKENDS = (
     "allauth.account.auth_backends.AuthenticationBackend",
 )
 
-# LOGIN_REDIRECT_URL = "/chat/"
+LOGIN_REDIRECT_URL = "/"
 LOGIN_URL = "/accounts/login/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"  # 로그아웃 후 홈화면으로 이동
 
