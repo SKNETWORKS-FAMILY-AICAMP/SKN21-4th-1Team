@@ -227,27 +227,6 @@ docker run -p 8000:8000 legal-chatbot
 ---
 
 
-
-## 🔄 데이터 흐름
-
-### 사용자 채팅 요청 흐름
-
-```mermaid
-graph TD
-    A["사용자 브라우저"] -->|1. POST /chat/api/| B["chat/views.py<br/>chat_api()"]
-    B -->|2. 질문 분석| C["chat/services.py<br/>ChatbotService.query()"]
-    C -->|3. RAG 파이프라인| D["chat/ai_module/graph.py<br/>LegalRAGBuilder.query()"]
-    D -->|4. 질문 임베딩| E["VectorStoreManager<br/>Qwen3 Embedding"]
-    E -->|5. 벡터 검색| F["Qdrant 벡터 DB<br/>상위 10개 문서"]
-    F -->|6. 리랭킹| G["JinaReranker<br/>상위 5개 재정렬"]
-    G -->|7. 프롬프트 구성| H["prompts.py<br/>SYSTEM + USER PROMPT"]
-    H -->|8. LLM 호출| I["OpenAI GPT-4o-mini<br/>답변 생성"]
-    I -->|9. 응답 반환| J["chat/views.py"]
-    J -->|10. DB 저장| K["ChatMessage<br/>models.py"]
-    K -->|11. JSON 응답| A
-```
-
-
 ---
 
 # ✨ **주요 기능**
