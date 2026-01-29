@@ -136,6 +136,7 @@
 
     .message-container {
         width: 100%;
+        height: fit-content;
         max-width: 800px;
         display: flex;
         flex-direction: column;
@@ -413,6 +414,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     const messages = document.getElementById("messages");
     let currentSessionId = "{{ current_session_id|default_if_none:'' }}";
@@ -434,13 +436,24 @@
 
     function typeMessage(text, element, speed = 10) {
         let index = 0;
-        element.textContent = "";
+        let currentText = "";
+        element.innerHTML = "";
+
         const interval = setInterval(() => {
             if (index < text.length) {
-                element.textContent += text[index++];
+                currentText += text[index++];
+                if (typeof marked !== 'undefined' && marked.parse) {
+                    element.innerHTML = marked.parse(currentText);
+                } else {
+                    element.textContent = currentText;
+                }
                 scrollToBottom();
             } else {
                 clearInterval(interval);
+                // Ensure final consistency
+                if (typeof marked !== 'undefined' && marked.parse) {
+                    element.innerHTML = marked.parse(text);
+                }
             }
         }, speed);
     }
