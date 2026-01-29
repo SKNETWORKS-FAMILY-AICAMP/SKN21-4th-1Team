@@ -62,28 +62,53 @@
             border-color: #2563eb;
         }
 
-        /* 모든 기본 라벨 숨기기 */
-        form p label {
-            display: none;
+        /* Django 에러 메시지 스타일링 */
+        .errorlist {
+            list-style: none;
+            padding: 0;
+            margin: 8px 0 0 0;
+            color: #ef4444;
+            font-size: 13px;
+            text-align: left;
         }
 
-        /* 아이디 기억하기 체크박스 영역 완전히 삭제(숨김) */
-        form p:has(input[type="checkbox"]) {
-            display: none;
+        .errorlist li {
+            margin: 4px 0;
         }
 
-        /* '비밀번호를 잊으셨나요?' 링크 스타일 및 간격 조정 */
-        form p a {
-            display: inline-block;
+        /* 비필드 에러 (로그인 실패 등) */
+        .nonfield-errors {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            color: #dc2626;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        /* 입력창 에러 상태 스타일 */
+        input.error {
+            border-color: #ef4444;
+        }
+
+        input.error::placeholder {
+            color: rgba(239, 68, 68, 0.6);
+        }
+
+        /* '비밀번호를 잊으셨나요?' 링크 스타일 */
+        .forgot-password {
+            display: block;
+            text-align: left;
             margin-top: 8px;
             margin-bottom: 15px;
             font-size: 13px;
-            /* 크기를 키워서 가독성 확보 */
             color: #2563eb;
             text-decoration: none;
         }
 
-        form p a:hover {
+        .forgot-password:hover {
             text-decoration: underline;
         }
 
@@ -173,16 +198,43 @@
         <h2>반가워요!</h2>
         <p class="subtitle">서비스 이용을 위해 로그인이 필요합니다.</p>
 
-        <form method="POST" action="{% url 'account_login' %}">
+        <form method="POST" action="{% url 'account_login' %}" id="loginForm">
             {% csrf_token %}
 
-            {{ form.as_p }}
+            <!-- 비필드 에러 (로그인 실패 등) -->
+            {% if form.non_field_errors %}
+            <div class="nonfield-errors">
+                {{ form.non_field_errors.0 }}
+            </div>
+            {% endif %}
+
+            <!-- 이메일 입력 -->
+            <input type="email" name="login" id="id_login" placeholder="이메일 주소"
+                value="{{ form.login.value|default:'' }}" {% if form.login.errors %}class="error" {% endif %}>
+            {% if form.login.errors %}
+            <ul class="errorlist">
+                {% for error in form.login.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <!-- 비밀번호 입력 -->
+            <input type="password" name="password" id="id_password" placeholder="비밀번호" {% if form.password.errors %}class="error"{% endif %}>
+            {% if form.password.errors %}
+            <ul class="errorlist">
+                {% for error in form.password.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <a href="{% url 'account_reset_password' %}" class="forgot-password"
+                style="text-align: center; margin-top: 15px;">비밀번호를 잊으셨나요?</a>
 
             <button type="submit" class="btn-login">로그인</button>
         </form>
-
         <div class="divider"><span>또는</span></div>
-
         <a href="{% provider_login_url 'google' %}" class="btn-google">
             <img src="https://www.google.com/favicon.ico" alt="Google">
             <span>구글로 시작하기</span>
@@ -192,6 +244,52 @@
         </div>
     </div>
 
+    <script>
+        // 폼 제출 시 유효성 검사
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            const loginInput = document.getElementById('id_login');
+            const passwordInput = document.getElementById('id_password');
+            let hasError = false;
+
+            // 이메일 검사
+            if (!loginInput.value.trim()) {
+                loginInput.classList.add('error');
+                loginInput.placeholder = '필수 항목입니다';
+                hasError = true;
+            } else {
+                loginInput.classList.remove('error');
+            }
+
+            // 비밀번호 검사
+            if (!passwordInput.value.trim()) {
+                passwordInput.classList.add('error');
+                passwordInput.placeholder = '필수 항목입니다';
+                hasError = true;
+            } else {
+                passwordInput.classList.remove('error');
+            }
+
+            // 에러가 있으면 제출 방지
+            if (hasError) {
+                e.preventDefault();
+            }
+        });
+
+        // 입력 시작하면 에러 상태 제거 및 원래 placeholder 복구
+        document.getElementById('id_login').addEventListener('input', function () {
+            if (this.classList.contains('error')) {
+                this.classList.remove('error');
+                this.placeholder = '이메일 주소';
+            }
+        });
+
+        document.getElementById('id_password').addEventListener('input', function () {
+            if (this.classList.contains('error')) {
+                this.classList.remove('error');
+                this.placeholder = '비밀번호';
+            }
+        });
+    </script>
 </body>
 
 </html>
