@@ -22,12 +22,34 @@ class GhostCursor {
         });
         document.body.appendChild(this.cursor);
 
-        // Hide real cursor and focus rings
+        // Hide real cursor and focus rings, add active simulation styles
         const style = document.createElement('style');
         style.innerHTML = `
             body.demo-active { cursor: none !important; } 
             body.demo-active * { cursor: none !important; }
             body.demo-active *:focus { outline: none !important; }
+            
+            /* Visual feedback for clicks */
+            .click-ripple {
+                position: fixed;
+                border-radius: 50%;
+                background: rgba(37, 99, 235, 0.4);
+                transform: translate(-50%, -50%);
+                pointer-events: none;
+                z-index: 9998;
+                animation: ripple-effect 0.4s ease-out forwards;
+            }
+            @keyframes ripple-effect {
+                0% { width: 0; height: 0; opacity: 0.8; }
+                100% { width: 40px; height: 40px; opacity: 0; }
+            }
+            
+            /* Simulated active state for buttons/inputs */
+            .active-simulated {
+                transform: scale(0.98) !important;
+                opacity: 0.8 !important;
+                background-color: rgba(0, 0, 0, 0.05) !important;
+            }
         `;
         document.head.appendChild(style);
         document.body.classList.add('demo-active');
@@ -42,8 +64,21 @@ class GhostCursor {
     }
 
     async moveTo(selector, duration = 1000) {
-        const element = document.querySelector(selector);
-        if (!element) return;
+        let element = document.querySelector(selector);
+
+        // Retry logic for dynamic elements
+        if (!element) {
+            for (let i = 0; i < 5; i++) {
+                await this.wait(200);
+                element = document.querySelector(selector);
+                if (element) break;
+            }
+        }
+
+        if (!element) {
+            console.warn(`Element not found: ${selector}`);
+            return;
+        }
 
         const rect = element.getBoundingClientRect();
         const targetX = rect.left + rect.width / 2;
@@ -75,17 +110,34 @@ class GhostCursor {
         });
     }
 
+    createRipple(x, y) {
+        const ripple = document.createElement('div');
+        ripple.className = 'click-ripple';
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        document.body.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 400);
+    }
+
     async click(selector) {
         await this.moveTo(selector, 800);
 
-        // Visualize click
-        this.cursor.style.transform = `translate(${this.x}px, ${this.y}px) scale(0.9)`;
+        // 1. Visual Cursor Click Animation
+        this.cursor.style.transform = `translate(${this.x}px, ${this.y}px) scale(0.8)`;
+
+        // 2. Create Ripple Effect
+        this.createRipple(this.x, this.y);
+
         await new Promise(r => setTimeout(r, 100));
         this.cursor.style.transform = `translate(${this.x}px, ${this.y}px) scale(1)`;
 
         const element = document.querySelector(selector);
         if (element) {
-            // Dispatch typical events for robustness
+            // 3. Simulate Active State on Element
+            element.classList.add('active-simulated');
+            setTimeout(() => element.classList.remove('active-simulated'), 150);
+
+            // 4. Dispatch Events
             element.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
             element.click();
             element.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
@@ -117,97 +169,122 @@ class GhostCursor {
 
 // Demo Scenario
 async function runDemo() {
+    console.log("Initializing Demo Script...");
+
     // Check if demo is requested (e.g. via URL param ?demo=true)
     const urlParams = new URLSearchParams(window.location.search);
     const isDemo = urlParams.has('demo') || sessionStorage.getItem('demo_active') === 'true';
 
-    if (!isDemo) return;
+    if (!isDemo) {
+        return;
+    }
 
+    console.log("Demo mode active!");
     // Persist demo state across reloads/redirects
     sessionStorage.setItem('demo_active', 'true');
 
-    // Wait for load
-    await new Promise(r => setTimeout(r, 1000));
+    // Wait for load to be sure
+    if (document.readyState !== 'complete') {
+        await new Promise(r => window.addEventListener('load', r));
+    }
+    await new Promise(r => setTimeout(r, 200));
 
     const ghost = new GhostCursor();
-
-    // Check current path to decide action
     const path = window.location.pathname;
 
+    // Logout Confirmation Page Check
+    if (path.includes('/logout')) {
+        await runLogoutConfirmStep(ghost);
+        return;
+    }
+
     if (path.includes('/signup')) {
-        await runSignupStep(ghost);
+        // await runSignupStep(ghost);
+        console.log("Signup step skipped by user request. Redirecting to login...");
+        window.location.href = '/accounts/login/?demo=true';
     } else if (path.includes('/login')) {
         await runLoginStep(ghost);
-    } else if (path.includes('/chat') || path === '/' || path === '') {
+    } else if (path === '/' || path === '' || path.includes('home')) {
+        await runHomeStep(ghost);
+    } else if (path.includes('/chat')) {
         await runChatStep(ghost);
+    } else {
+        console.log("Unrecognized path for demo, checking for generic checks...");
+        if (document.querySelector('form[action*="login"]')) await runLoginStep(ghost);
+        else if (document.querySelector('form[action*="signup"]')) {
+            // await runSignupStep(ghost);
+            window.location.href = '/accounts/login/?demo=true';
+        }
+        else if (document.querySelector('.start-btn')) await runHomeStep(ghost);
+        else if (document.body.innerText.includes('로그아웃') && document.querySelector('form button')) {
+            await runLogoutConfirmStep(ghost);
+        }
+    }
+}
+
+async function runHomeStep(ghost) {
+    console.log("Starting Home Step");
+    await ghost.wait(500);
+
+    const startBtn = document.querySelector('.start-btn');
+    if (startBtn) {
+        await ghost.click('.start-btn');
+    } else {
+        console.warn("Start button not found on home page");
+        window.location.href = '/chat/';
     }
 }
 
 async function runSignupStep(ghost) {
-    console.log("Starting Signup Step");
+    console.log("Starting Signup Step - SKIPPED");
+    /*
     await ghost.wait(500);
-
-    // Input Email
-    // Try to find email field (generic or id)
+    
     let emailField = document.querySelector('input[name="email"]') || document.querySelector('#id_email');
     if (emailField) {
-        // Generate random email to avoid duplicate error during repeated demos
         const randomId = Math.floor(Math.random() * 1000);
         await ghost.type(emailField.id ? '#' + emailField.id : 'input[name="email"]', `demo${randomId}@example.com`);
     }
-
+    
     await ghost.wait(300);
 
-    // Password 1
     let pass1 = document.querySelector('input[name="password1"]') || document.querySelector('#id_password1');
     if (pass1) await ghost.type(pass1.id ? '#' + pass1.id : 'input[name="password1"]', 'DemoPass123!');
-
+    
     await ghost.wait(300);
-
-    // Password 2
+    
     let pass2 = document.querySelector('input[name="password2"]') || document.querySelector('#id_password2');
     if (pass2) {
         await ghost.type(pass2.id ? '#' + pass2.id : 'input[name="password2"]', 'DemoPass123!');
     }
-
+    
     await ghost.wait(500);
-
-    // Click Signup Button
     await ghost.click('button[type="submit"]');
+    */
 }
 
 async function runLoginStep(ghost) {
     console.log("Starting Login Step");
     await ghost.wait(500);
 
-    // Check if we need to type (auto-fill might not happen in demo)
-    let emailField = document.querySelector('input[name="login"]');
-    // If not filled, type generic or hope user typed. 
-    // Since signup redirects to login usually without auto-login in some configs, 
-    // we might need credentials. But we used random email in signup...
-    // Issue: Login step needs to know the email used in Signup.
-    // Solution: Just type a fixed demo email for now, OR assume signup logs in automatically.
-    // If signup logs in automatically, we won't land here. 
-    // If we land here, we need credentials.
-    // Let's type a standard demo email. User might need to have this account ready if signup isn't used.
-    // Or if signup WAS used, we are stuck.
-    // Let's assume for this demo, the user starts at Signup, and Signup logic handles login or redirects.
-    // If redirects to Login, we type fixed credentials.
+    // User requested credentials:
+    // Email: testuser@example.com
+    // Password: ComplexPass123!
 
-    if (emailField && !emailField.value) {
-        await ghost.type('input[name="login"]', 'demo_user@example.com');
+    let emailField = document.querySelector('input[name="login"]');
+    if (emailField) {
+        // Always clear and type for demo visual
+        await ghost.type('input[name="login"]', 'testuser@example.com');
     }
 
     await ghost.wait(300);
 
     let passField = document.querySelector('input[name="password"]');
-    if (passField && !passField.value) {
-        await ghost.type('input[name="password"]', 'DemoPass123!');
+    if (passField) {
+        await ghost.type('input[name="password"]', 'ComplexPass123!');
     }
 
     await ghost.wait(500);
-
-    // Click Login
     await ghost.click('button[type="submit"]');
 }
 
@@ -216,63 +293,124 @@ async function runChatStep(ghost) {
     console.log(`Starting Chat Demo Step: ${step}`);
 
     if (step === 0) {
-        // Step 0: Initial Load -> Click New Chat
-        // Just to show activity, move around a bit
-        await ghost.moveTo('.nav-brand', 1000);
-        await ghost.wait(500);
-        await ghost.click('.btn-new-chat');
-        sessionStorage.setItem('demo_step', '1');
+        // Step 0: Initial Load (Just Arrived) -> Send Q1
+        await ghost.wait(1000);
+
+        // 1. Send Question
+        const question = "퇴직금 지급 기준이 어떻게 되나요?";
+
+        if (document.querySelector('#messageInput')) {
+            await ghost.type('#messageInput', question);
+            await ghost.wait(500);
+            await ghost.click('#sendBtn');
+            await waitForResponse();
+
+            // Move to next step
+            sessionStorage.setItem('demo_step', '1');
+
+            await ghost.wait(2000); // Give time to read answer
+            runChatStep(ghost); // Re-invoke to proceed to step 1 logic
+        }
         return;
     }
 
     if (step === 1) {
-        // Step 1: Typing Q1
+        // Step 1: Click New Chat
+        console.log("Step 1: Clicking New Chat");
+        await ghost.wait(1000); // Wait a bit after answer
+
+        const newChatBtn = document.querySelector('.btn-new-chat');
+        if (newChatBtn) {
+            await ghost.click('.btn-new-chat');
+            // This will reload the page
+            sessionStorage.setItem('demo_step', '2');
+        }
+        return;
+    }
+
+    if (step === 2) {
+        // Step 2: Delete Chat (Previous or Current)
+        console.log("Step 2: Deleting Chat");
+        await ghost.wait(1500); // Wait for reload
+
+        // Try to find the second session item (Previous), fallback to first (Current)
+        const sessionItems = document.querySelectorAll('.session-item');
+        let targetSession = null;
+        let targetIndex = 0;
+
+        if (sessionItems.length >= 2) {
+            targetSession = sessionItems[1]; // Prefer 2nd item
+            targetIndex = 2; // for nth-child
+        } else if (sessionItems.length === 1) {
+            targetSession = sessionItems[0]; // Fallback to 1st
+            targetIndex = 1; // for nth-child
+        }
+
+        if (targetSession) {
+            // Move to hover it to show delete button
+            const itemSelector = `.session-list .session-item:nth-child(${targetIndex})`;
+            await ghost.moveTo(itemSelector);
+
+            // Trigger simulated hover to reveal delete button
+            targetSession.classList.add('hover-simulated');
+            await ghost.wait(800); // Wait for render/visibility
+
+            // Click delete button inside it
+            await ghost.click(`${itemSelector} .delete-btn`);
+
+            // Wait for Modal
+            await ghost.wait(800);
+            const confirmBtn = document.querySelector('#btnConfirm');
+            if (confirmBtn) {
+                await ghost.click('#btnConfirm');
+
+                // Wait for deletion effect
+                await ghost.wait(1500);
+
+                // Move to Step 3
+                sessionStorage.setItem('demo_step', '3');
+                runChatStep(ghost);
+            }
+        } else {
+            console.warn("No sessions found to delete! Skipping...");
+            // Fallback
+            sessionStorage.setItem('demo_step', '3');
+            runChatStep(ghost);
+        }
+        return;
+    }
+
+    if (step === 3) {
+        // Step 3: Logout
+        console.log("Step 3: Logging Out");
         await ghost.wait(1000);
-        const questions = [
-            "근로계약서 미작성 시 벌금은 얼마인가요?",
-            "퇴직금 지급 기준이 어떻게 되나요?",
-            "주휴수당 계산법 알려줘"
-        ];
 
-        // Question 1
-        await ghost.type('#messageInput', questions[0]);
-        await ghost.wait(500);
-        await ghost.click('#sendBtn');
-        await waitForResponse();
-
-        // Question 2
-        await ghost.type('#messageInput', questions[1]);
-        await ghost.wait(500);
-        await ghost.click('#sendBtn');
-        await waitForResponse();
-
-        // Question 3
-        await ghost.type('#messageInput', questions[2]);
-        await ghost.wait(500);
-        await ghost.click('#sendBtn');
-        await waitForResponse();
-
-        sessionStorage.setItem('demo_step', '2');
-        runDeleteStep(ghost);
-    } else if (step === 2) {
-        runDeleteStep(ghost);
+        const logoutBtn = document.querySelector('.btn-logout');
+        if (logoutBtn) {
+            await ghost.click('.btn-logout');
+        } else {
+            // Try searching for a link with logout text
+            const links = Array.from(document.querySelectorAll('a'));
+            const logoutLink = links.find(el => el.textContent.includes('로그아웃'));
+            if (logoutLink) {
+                await ghost.click('a[href*="logout"]');
+            }
+        }
     }
 }
 
-async function runDeleteStep(ghost) {
-    await ghost.wait(1000);
-    const deleteBtnSelector = '.session-item.active .delete-btn';
-    await ghost.click(deleteBtnSelector);
-    await ghost.wait(1000);
+async function runLogoutConfirmStep(ghost) {
+    console.log("Confirming Logout");
+    await ghost.wait(800);
+    const confirmBtn = document.querySelector('form button') || document.querySelector('button[type="submit"]');
+    if (confirmBtn) {
+        await ghost.click('button[type="submit"]');
+    }
 
-    // Step 3: Logout
-    await ghost.click('.btn-logout');
-
-    // End Demo
+    // Cleanup
     sessionStorage.removeItem('demo_step');
     sessionStorage.removeItem('demo_active');
     document.body.classList.remove('demo-active');
-    // alert('Demo Completed!');
 }
 
 async function waitForResponse() {
@@ -290,9 +428,9 @@ async function waitForResponse() {
     });
 }
 
-// Initialize
+// Initialize - robust loading
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', runDemo);
+    document.addEventListener('DOMContentLoaded', () => setTimeout(runDemo, 500));
 } else {
-    runDemo();
+    setTimeout(runDemo, 500);
 }
