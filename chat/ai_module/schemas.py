@@ -50,7 +50,7 @@ class QueryAnalysis(BaseModel):
     query_complexity: str = Field(default="medium", description="질문 난이도: simple, medium, complex")
     user_situation: str = Field(default="", description="사용자 상황 요약")
     core_question: str = Field(default="", description="문맥이 해소된 검색용 핵심 질문 (Standalone Query)")
-    related_laws: List[str] = Field(default_factory=list, description="관련 법률명")
+    related_laws: List[str] = Field(default_factory=list, description="사용자가 질문에서 '정확히 발화한' 법령명만 추출. (예: '고용노동법' -> ['고용노동법']). 절대 '근로기준법' 등으로 변환하지 말 것. 없으면 빈 리스트.")
 
 
 class AnswerEvaluation(BaseModel):

@@ -27,15 +27,11 @@ logger = logging.getLogger("LegalRAG-V8")
 # 현재 파일 위치: chat/ai_module/graph.py
 # labor_laws_list.py는 프로젝트 루트에 있음
 try:
-    from labor_laws_list import LABOR_LAWS_UNIQUE
+    from chat.ai_module.labor_laws_list import LABOR_LAWS_UNIQUE
 except ImportError:
     # 경로 문제 발생 시 처리 (백업)
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    try:
-        from labor_laws_list import LABOR_LAWS_UNIQUE
-    except ImportError:
-        logger.warning("Failed to import LABOR_LAWS_UNIQUE. Suggestion feature disabled.")
-        LABOR_LAWS_UNIQUE = []
+    from labor_laws_list import LABOR_LAWS_UNIQUE
 
 # ============================================================
 # [SECTION 7] Logic Layer - LangGraph 노드 및 워크플로우 구성
@@ -207,20 +203,39 @@ class LegalRAGBuilder:
 
             target_law = related_laws[0]
             
+            # --- [New] Clean Law Name (Suffix Removal) ---
+            # "고용노동법 제34조" -> "고용노동법"
+            original_target = target_law
+            target_law = self._clean_law_name(target_law)
+            
+            logger.info(f"[Verify] Target: '{original_target}' -> Cleaned: '{target_law}'")
+            
             # 2. 검증 로직 개선 (Fuzzy Match -> DB Check)
             verified_law = None
             
-            # 2-1. Static List Check (Exact + Fuzzy)
+            # 2-1. Static List Check (Exact + Fuzzy with Threshold)
             if target_law in LABOR_LAWS_UNIQUE:
                 verified_law = target_law
             else:
-                # Fuzzy matching (cutoff 0.6 to allow "근로 기준법" -> "근로기준법")
-                matches = difflib.get_close_matches(target_law, LABOR_LAWS_UNIQUE, n=1, cutoff=0.6)
+                # Fuzzy matching with ratio check
+                matches = difflib.get_close_matches(target_law, LABOR_LAWS_UNIQUE, n=1, cutoff=0.4)
                 if matches:
-                    verified_law = matches[0]
-                    logger.info(f"Fuzzy match found: {target_law} -> {verified_law}")
+                    candidate = matches[0]
+                    # Calculate exact ratio
+                    ratio = difflib.SequenceMatcher(None, target_law, candidate).ratio()
+                    logger.info(f"Fuzzy match candidate: {candidate}, Ratio: {ratio:.4f}")
+                    
+                    if ratio >= 0.8:
+                        # High confidence: Auto-correct
+                        verified_law = candidate
+                        logger.info(f"Auto-correcting (High confidence): {target_law} -> {verified_law}")
+                    else:
+                        # Medium confidence (0.4 <= ratio < 0.8): Ambiguous -> Suggestion
+                        # Will be handled in the 'else' block of 'if verified_law:'
+                        logger.info(f"Ambiguous match (Medium confidence): {target_law} -> {candidate}")
+                        pass
             
-            # 2-2. DB Check (If not found in static list)
+            # 2-2. DB Check (If not verified yet)
             if not verified_law:
                 exists = await self.vs_manager.check_law_exists(target_law)
                 if exists:
@@ -228,27 +243,37 @@ class LegalRAGBuilder:
 
             if verified_law:
                 logger.info(f"Law verification passed: {verified_law}")
+                
                 # Update analysis with corrected law name if needed
                 if verified_law != target_law:
-                    # state update is tricky in LangGraph unless we return new state
-                    # But proceeding to search is fine.
-                    pass
+                    logger.info(f"Correcting query: '{target_law}' -> '{verified_law}'")
+                    new_query = query.replace(original_target, verified_law, 1)
+                    analysis["related_laws"] = [verified_law]
+                    
+                    return {
+                        "next_action": "search",
+                        "user_query": new_query,
+                        "query_analysis": analysis
+                    }
+                
                 return {"next_action": "search"}
             else:
-                logger.info(f"Law verification failed: {target_law}")
+                logger.info(f"Law verification failed/ambiguous: {target_law}")
                 
-                # 3. 제안 (유사 법령 찾기 - 낮은 cutoff)
+                # 3. 제안 (유사 법령 찾기)
+                # Matches are already calculated or can be re-fetched.
+                # Use strict cutoff for suggestion to avoid noise, but here we want to explain ambiguity.
                 suggestions = difflib.get_close_matches(target_law, LABOR_LAWS_UNIQUE, n=3, cutoff=0.4)
                 
                 if suggestions:
                     suggestion_str = ", ".join([f"**'{s}'**" for s in suggestions])
-                    msg = f"죄송합니다, 말씀하신 **'{target_law}'**은(는) 데이터베이스에서 찾을 수 없습니다.\n혹시 {suggestion_str}을(를) 말씀하시는 건가요?"
+                    msg = f"말씀하신 **'{target_law}'**은(는) 데이터베이스에 없지만, 비슷한 법령이 있습니다.\n혹시 {suggestion_str}을(를) 말씀하시는 건가요?"
                 else:
                     msg = f"죄송합니다, 말씀하신 **'{target_law}'**은(는) 현재 노동법 데이터베이스에 등록되어 있지 않습니다. 정확한 법령명을 확인해 주시겠어요?"
                 
                 return {
                     "generated_answer": msg,
-                    "next_action": "clarify_end"
+                    "next_action": "clarify_end" # End flow and show message
                 }
 
         return verify_law
@@ -293,12 +318,15 @@ class LegalRAGBuilder:
         
         async def search_documents(state: AgentState) -> dict:
             analysis = state.get("query_analysis", {})
-            original_query = state["user_query"]
-            
-            # 카테고리가 노동법 외인 경우 검색 최소화 또는 건너뛰기인데,
+            # [Fix] Use core_question (standalone) if available, otherwise user_query
+            search_target = analysis.get("core_question")
+            if not search_target:
+                search_target = state["user_query"]
+                
+             # 카테고리가 노동법 외인 경우 검색 최소화 또는 건너뛰기인데,
             # Flow상 verify_law -> search로 넘어온 것이므로 검색 진행
                 
-            logger.info(f"Searching with query: {original_query}")
+            logger.info(f"Searching with query (Core): {search_target}")
             
             related_laws = analysis.get("related_laws", [])
             collection_name = self.vs_manager.get_collection_name()
@@ -310,7 +338,7 @@ class LegalRAGBuilder:
 
             try:
                 # 1. Query Expansion (Node A)
-                expanded = await query_expander(original_query)
+                expanded = await query_expander(search_target)
                 
                 # Multi-Query Search List
                 search_queries = [expanded.keyword_query] # 기본 키워드 쿼리
@@ -375,7 +403,7 @@ class LegalRAGBuilder:
                     return docs
                 return reranker.compress_documents(docs, query)
 
-            reranked_docs = await asyncio.to_thread(rerank_logic, vector_docs, original_query) # Reranking은 원본 쿼리 기준
+            reranked_docs = await asyncio.to_thread(rerank_logic, vector_docs, search_target) # Reranking은 원본 쿼리(Core) 기준
 
             # 5. Filtering & Boosting
             final_docs = []
@@ -611,6 +639,14 @@ class LegalRAGBuilder:
         
         # 기본값
         return "해당 법령"
+
+    def _clean_law_name(self, text: str) -> str:
+        """법령명에서 '제XX조' 등 조항 번호 제거"""
+        import re
+        # Pattern: (공백)제(공백)숫자(공백)(조|항|호|목)... 끝까지
+        pattern = r'\s*제\s*\d+\s*(조|항|호|목).*$'
+        cleaned = re.sub(pattern, '', text).strip()
+        return cleaned
 
     # --- Routing ---
 
