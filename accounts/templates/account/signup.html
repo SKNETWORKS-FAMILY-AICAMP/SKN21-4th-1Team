@@ -14,6 +14,8 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .login-card {
@@ -35,14 +37,28 @@
         .subtitle {
             color: #6b7280;
             font-size: 14px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
+        }
+
+        /* 폼 스타일링 */
+        form p {
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        form label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
         }
 
         input[type="email"],
         input[type="password"],
         input[type="text"] {
             width: 100%;
-            padding: 13px;
+            padding: 14px;
             border: 1px solid #e5e7eb;
             border-radius: 12px;
             box-sizing: border-box;
@@ -55,81 +71,71 @@
             border-color: #2563eb;
         }
 
-        /* ===== 도움말 텍스트 전용 강화된 스타일 ===== */
+        /* 도움말 텍스트 (비밀번호 규칙 등) */
         .helptext {
-            display: block !important;
-            font-size: 9px !important;
-            color: #9ca3af !important;
-            margin-top: 4px !important;
-            margin-bottom: 0 !important;
-            padding: 0 !important;
-            line-height: 1.4 !important;
-            word-break: keep-all !important;
-        }
-        
-        .helptext * {
-            font-size: 9px !important;
-            color: #9ca3af !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        
-        .helptext ul {
-            list-style: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-        
-        .helptext li {
-            list-style: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            font-size: 9px !important;
-            color: #9ca3af !important;
-        }
-        
-        .helptext li:before {
-            content: "• " !important;
-        }
-
-        /* ===== Django 폼 필드 스타일 ===== */
-        form p {
-            text-align: left;
-            margin-bottom: 18px;
-        }
-
-        form p label {
             display: block;
+            margin-top: 8px;
             font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 6px;
-        }
-        
-        form p input[type="text"],
-        form p input[type="email"],
-        form p input[type="password"],
-        form p textarea {
-            font-size: 14px;
+            color: #555;
+            background: #f3f4f6;
+            padding: 12px 15px;
+            border-radius: 12px;
+            text-align: left;
+            line-height: 1.6;
+            border: 1px solid #e5e7eb;
         }
 
-        /* ===== Django 폼 에러 메시지 ===== */
+        .helptext ul {
+            margin: 0;
+            padding: 0;
+            list-style: none !important;
+        }
+
+        .helptext li {
+            position: relative;
+            padding-left: 10px;
+            font-size: 11px;
+            color: #555;
+            margin-bottom: 0px;
+            list-style: none !important;
+        }
+
+        /* 커스텀 불릿 포인트 (체크 표시) */
+        .helptext li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #555;
+            font-weight: bold;
+        }
+
+        /* 에러 메시지 스타일 */
         .errorlist {
-            font-size: 9px !important;
-            color: #ef4444 !important;
-            margin: 4px 0 0 0 !important;
-            padding: 0 !important;
-            list-style: none !important;
-        }
-        
-        .errorlist li {
-            font-size: 9px !important;
-            color: #ef4444 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            list-style: none !important;
+            list-style: disc;
+            padding-left: 20px;
+            padding-bottom: 10px;
+            margin: 5px 0 0 0;
+            color: #ef4444;
+            font-size: 12px;
+            text-align: left;
         }
 
+        .errorlist li {
+            margin: 1px 0;
+        }
+
+        .nonfield-errors {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #dc2626;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        /* 버튼 스타일 */
         .btn-login {
             width: 100%;
             padding: 14px;
@@ -140,31 +146,17 @@
             font-weight: bold;
             font-size: 16px;
             cursor: pointer;
-            margin-top: 10px;
             transition: background 0.2s;
+            margin-top: 10px;
         }
 
         .btn-login:hover {
             background: #1e40af;
         }
-        
-        /* Django 폼의 에러 메시지 스타일 */
-        .errorlist {
-            font-size: 9px !important;
-            color: #ef4444 !important;
-            margin-top: 4px !important;
-            padding: 0 !important;
-            list-style: none !important;
-        }
-        
-        .errorlist li {
-            font-size: 9px !important;
-            color: #ef4444 !important;
-            margin: 0 !important;
-        }
 
+        /* 구분선 */
         .divider {
-            margin: 25px 0;
+            margin: 30px 0;
             border-top: 1px solid #f3f4f6;
             position: relative;
         }
@@ -180,6 +172,7 @@
             font-size: 12px;
         }
 
+        /* 구글 버튼 */
         .btn-google {
             display: flex;
             align-items: center;
@@ -187,7 +180,7 @@
             width: 100%;
             padding: 12px;
             border: 1px solid #e5e7eb;
-            border-radius: 12px;
+            border-radius: 10px;
             background: white;
             color: #111;
             font-weight: 600;
@@ -195,10 +188,16 @@
             text-decoration: none;
             gap: 10px;
             box-sizing: border-box;
+            transition: background 0.2s;
         }
 
         .btn-google:hover {
             background: #f3f4f6;
+        }
+
+        .btn-google img {
+            width: 18px;
+            height: 18px;
         }
 
         .footer-links {
@@ -222,8 +221,35 @@
 
         <form method="post" action="{% url 'account_signup' %}">
             {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn-login">회원가입하기</button>
+
+            <!-- 비필드 에러 (전체 에러) -->
+            {% if form.non_field_errors %}
+            <div class="nonfield-errors">
+                {{ form.non_field_errors.0 }}
+            </div>
+            {% endif %}
+
+            <!-- 폼 필드 렌더링 -->
+            {% for field in form %}
+            <p>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+
+                {{ field }}
+
+                {% if field.errors %}
+            <ul class="errorlist">
+                {% for error in field.errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% if field.help_text %}
+            <div class="helptext">{{ field.help_text|safe }}</div>
+            {% endif %}
+            </p>
+            {% endfor %}
+
+            <button type="submit" class="btn-login">가입하기</button>
         </form>
 
         <div class="divider"><span>또는</span></div>
@@ -237,6 +263,8 @@
             이미 계정이 있으신가요? <a href="{% url 'account_login' %}">로그인</a>
         </div>
     </div>
+
+
 </body>
 
 </html>
