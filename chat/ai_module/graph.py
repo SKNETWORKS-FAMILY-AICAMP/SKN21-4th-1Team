@@ -10,7 +10,7 @@ from langsmith import traceable
 from qdrant_client import AsyncQdrantClient, models
 
 from .config import Config
-from .schemas import AgentState, HybridQuery, QueryAnalysis, AnswerEvaluation
+from .schemas import AgentState, ExpandedQuery, QueryAnalysis, AnswerEvaluation
 from .infrastructure import VectorStoreManager, SparseEmbeddingManager, JinaReranker
 from . import prompts
 
@@ -18,6 +18,11 @@ from . import prompts
 import difflib
 import sys
 import os
+
+# ============================================================
+# [SECTION 7] Logic Layer - LangGraph 노드 및 워크플로우 구성
+# ============================================================
+logger = logging.getLogger("LegalRAG-V8")
 
 # 현재 파일 위치: chat/ai_module/graph.py
 # labor_laws_list.py는 프로젝트 루트에 있음
@@ -31,8 +36,6 @@ except ImportError:
     except ImportError:
         logger.warning("Failed to import LABOR_LAWS_UNIQUE. Suggestion feature disabled.")
         LABOR_LAWS_UNIQUE = []
-
-logger = logging.getLogger("LegalRAG-V8")
 
 # ============================================================
 # [SECTION 7] Logic Layer - LangGraph 노드 및 워크플로우 구성
@@ -133,30 +136,30 @@ class LegalRAGBuilder:
 
 
     def _create_query_expander(self):
-        """Query Expander 생성 [사용 프롬프트: PROMPT_QUERY_EXPANSION] - HyDE + Hybrid"""
-        structured_llm = self.llm.with_structured_output(HybridQuery)
+        """[Node A: Query Rewriting] Query Expander 생성 (Multi-Query Expansion)"""
+        structured_llm = self.llm.with_structured_output(ExpandedQuery)
 
         expansion_prompt = ChatPromptTemplate.from_messages([
             ("system", prompts.PROMPT_QUERY_EXPANSION),
             ("human", "{query}")
         ])
 
-        async def expand_query(query: str) -> HybridQuery:
+        async def expand_query(query: str) -> ExpandedQuery:
             try:
                 # Async invoke
                 chain = expansion_prompt | structured_llm
                 # Type hint for IDE
-                result: HybridQuery = await chain.ainvoke({"query": query})  # type: ignore
+                result: ExpandedQuery = await chain.ainvoke({"query": query})  # type: ignore
                 logger.info(
-                    f"HyDE Query Generated - Keyword: {result.keyword_query[:40]}...")
+                    f"[Node A] Expanded Queries: {result.expanded_queries}")
                 return result
             except Exception as e:
                 logger.warning(f"Query expansion failed: {e}")
                 # Fallback
-                return HybridQuery(
+                return ExpandedQuery(
+                    original_query=query,
                     keyword_query=query,
-                    semantic_query=query,
-                    hyde_passage=query
+                    expanded_queries=[query]
                 )
 
         return expand_query
@@ -164,7 +167,7 @@ class LegalRAGBuilder:
     # --- Nodes (Async) ---
 
     def _create_analyze_node(self):
-        """[노드: Analyze] 질문 분석 노드 (Async)"""
+        """[Node B: Analyze] 질문 분석 및 모호성 판단 (Ambiguity Router)"""
         structured_llm = self.llm.with_structured_output(QueryAnalysis)
 
         analyze_prompt = ChatPromptTemplate.from_messages([
@@ -175,7 +178,7 @@ class LegalRAGBuilder:
 
         async def analyze_query(state: AgentState) -> dict:
             query = state["user_query"]
-            logger.info(f"Analyzing query: {query[:50]}...")
+            logger.info(f"[Node B] Analyzing query: {query[:50]}...")
 
             chain = analyze_prompt | structured_llm
             analysis: QueryAnalysis = await chain.ainvoke({
@@ -184,7 +187,7 @@ class LegalRAGBuilder:
             })  # type: ignore
 
             logger.info(
-                f"Analysis: category={analysis.category}, intent={analysis.intent_type}")
+                f"Analysis: category={analysis.category}, intent={analysis.intent_type}, Ambiguous={analysis.is_ambiguous}")
 
             return {"query_analysis": analysis.model_dump()}
 
@@ -242,21 +245,36 @@ class LegalRAGBuilder:
         return verify_law
 
     def _create_clarify_node(self):
-        """[노드: Clarify] 명확화 요청 노드"""
-        template = prompts.TEMPLATE_CLARIFY
+        """[Node C: Clarify] 역질문 생성 에이전트"""
+        
+        # 1. 템플릿 방식 대신 LLM 생성 방식 사용 (TEMPLATE_CLARIFY_GENERATOR)
+        clarify_prompt = ChatPromptTemplate.from_messages([
+            ("system", prompts.TEMPLATE_CLARIFY_GENERATOR),
+            MessagesPlaceholder(variable_name="messages"),
+            ("human", "{query}")
+        ])
 
         async def request_clarification(state: AgentState) -> dict:
+            query = state["user_query"]
             analysis = state.get("query_analysis", {})
-            clarification_q = analysis.get(
-                "clarification_question", "질문을 좀 더 구체적으로 해주시겠어요?")
+            missing_info_list = analysis.get("missing_info", [])
+            missing_str = ", ".join(missing_info_list) if missing_info_list else "구체적인 사실관계"
+            
+            logger.info(f"[Node C] Generating clarification for missing: {missing_str}")
 
-            answer = template.format(clarification_question=clarification_q)
-            return {"generated_answer": answer, "next_action": "end"}
+            chain = clarify_prompt | self.llm
+            response = await chain.ainvoke({
+                "query": query,
+                "messages": state["messages"],
+                "missing_info": missing_str
+            })
+            
+            return {"generated_answer": response.content, "next_action": "end"}
 
         return request_clarification
 
     def _create_search_node(self):
-        """하이브리드 검색 노드 (Async + Qdrant Native Hybrid)"""
+        """하이브리드 검색 노드 (Multi-Query Expansion + RRF)"""
         # client = self.client  # 여기서는 client를 미리 가져올 수 없음 (Lazy)
         embeddings = self.embeddings
         sparse_manager = self.sparse_manager
@@ -264,67 +282,70 @@ class LegalRAGBuilder:
         reranker = self.reranker
         config = self.config
         
-        # Collection name might be dynamic or static
-        # vs_manager.get_collection_name() retrieves it
-        
         async def search_documents(state: AgentState) -> dict:
-            # Analyze 단계에서 재구성된 core_question이 있다면 그것을 검색 쿼리로 사용
             analysis = state.get("query_analysis", {})
-            original_query = analysis.get("core_question")
+            original_query = state["user_query"]
             
-            # core_question이 없으면(Analyze 실패 등) 사용자 원문 사용
-            if not original_query:
-                original_query = state["user_query"]
+            # 카테고리가 노동법 외인 경우 검색 최소화 또는 건너뛰기인데,
+            # Flow상 verify_law -> search로 넘어온 것이므로 검색 진행
                 
             logger.info(f"Searching with query: {original_query}")
             
             related_laws = analysis.get("related_laws", [])
             collection_name = self.vs_manager.get_collection_name()
 
-            # 0. Create Client (Fresh per request)
+            # 0. Create Client
             client = await self.vs_manager.create_client()
 
+            all_results = []
+
             try:
-                # 1. Query Expansion (Async)
-                keyword_query = original_query
-                vector_query = original_query
-
-                complexity = analysis.get("query_complexity", "medium")
-
-                if complexity == "simple":
-                    # Simple 질문은 Query Expansion 생략
-                    keyword_query = original_query
-                    vector_query = original_query
-                    logger.info("Simple query - skipping query expansion")
-                elif query_expander:
-                    hybrid = await query_expander(original_query)
-                    keyword_query = hybrid.keyword_query
-                    vector_query = hybrid.hyde_passage if hybrid.hyde_passage else hybrid.semantic_query
-
-                logger.info(f"[Query] Keyword(Sparse): {keyword_query}")
-                logger.info(f"[Query] Vector(Dense): {vector_query[:50]}...")
-
-                # 2. Embedding Generation (Parallel: Dense + Sparse)
-                async def get_dense_vec():
-                    return await asyncio.to_thread(embeddings.embed_query, vector_query)
-
-                async def get_sparse_vec():
-                    if sparse_manager:
-                        return await asyncio.to_thread(sparse_manager.encode_query, keyword_query)
-                    return None
-
-                dense_vec, sparse_vec = await asyncio.gather(get_dense_vec(), get_sparse_vec())
-
-                # 3. Qdrant Native Hybrid Search (Traced)
-                vector_docs = await self._execute_search(
-                    client=client,
-                    dense_vec=dense_vec,
-                    sparse_vec=sparse_vec,
-                    collection_name=collection_name,
-                    limit=config.TOP_K_VECTOR
-                )
+                # 1. Query Expansion (Node A)
+                expanded = await query_expander(original_query)
                 
-                logger.info(f"Hybrid Search Results: {len(vector_docs)} docs")
+                # Multi-Query Search List
+                search_queries = [expanded.keyword_query] # 기본 키워드 쿼리
+                search_queries.extend(expanded.expanded_queries) # 확장된 쿼리들
+                
+                # 중복 제거 및 Top 3 제한
+                search_queries = list(dict.fromkeys(search_queries))[:4]
+                logger.info(f"[Search] Executing multi-queries: {search_queries}")
+                
+                # 2. Parallel Search Execution
+                async def perform_single_search(q_text):
+                    # Embed
+                    d_vec = await asyncio.to_thread(embeddings.embed_query, q_text)
+                    s_vec = None
+                    if sparse_manager:
+                        s_vec = await asyncio.to_thread(sparse_manager.encode_query, q_text) # 키워드 쿼리는 q_text 그대로 사용 (Note: q_text might contain naturally formulated query, but split by spacer is handled inside encode_query?? No, expecting tokens. But SparseBM25 usually takes raw text. Checking logic assumed safe.)
+                    
+                    return await self._execute_search(
+                        client=client,
+                        dense_vec=d_vec,
+                        sparse_vec=s_vec,
+                        collection_name=collection_name,
+                        limit=5 # 각 쿼리당 5개만 가져와서 합침
+                    )
+
+                tasks = [perform_single_search(q) for q in search_queries]
+                results_lists = await asyncio.gather(*tasks)
+                
+                # 3. Merge & Deduplicate (Simple RRF concept or Score Max)
+                unique_docs = {}
+                for res_list in results_lists:
+                    for doc in res_list:
+                        # RRF style simple scoring or just Max score override
+                        # ID 대신 content hash나 metadata로 중복 체크
+                        doc_id = doc.metadata.get('id') or doc.page_content[:20]
+                        if doc_id not in unique_docs:
+                            unique_docs[doc_id] = doc
+                        else:
+                            # 이미 있으면 점수 더 높은걸로 교체 (Soft selection)
+                            if doc.metadata.get('relevance_score', 0) > unique_docs[doc_id].metadata.get('relevance_score', 0):
+                                unique_docs[doc_id] = doc
+                
+                vector_docs = list(unique_docs.values())
+                logger.info(f"Merged Multi-Query Results: {len(vector_docs)} docs")
 
             except Exception as e:
                 logger.error(f"Search failed: {e}")
@@ -332,28 +353,27 @@ class LegalRAGBuilder:
                 traceback.print_exc()
                 return {"retrieved_docs": []}
             finally:
-                # Clean up client
                 if client:
                     await client.close()
 
-            # 4. Reranking (Async wrap or sync)
+            # 4. Reranking
             if not vector_docs:
                 return {"retrieved_docs": []}
 
-            # Reranker logic (Sync) inside Async
+            # Reranker logic
             def rerank_logic(docs, query):
                 if not reranker:
                     return docs
                 return reranker.compress_documents(docs, query)
 
-            reranked_docs = await asyncio.to_thread(rerank_logic, vector_docs, original_query)
+            reranked_docs = await asyncio.to_thread(rerank_logic, vector_docs, original_query) # Reranking은 원본 쿼리 기준
 
             # 5. Filtering & Boosting
             final_docs = []
             for doc in reranked_docs:
                 score = doc.metadata.get('relevance_score', 0)
 
-                # Boosting
+                # Boosting logic (Same as before)
                 law_name = doc.metadata.get('law_name', '')
                 for rel_law in related_laws:
                     if rel_law in law_name:
@@ -588,7 +608,12 @@ class LegalRAGBuilder:
     def _route_after_analysis(self, state: AgentState) -> Literal["clarify", "search", "generate", "verify_law"]:
         analysis = state.get("query_analysis", {})
         category = analysis.get("category", "노동법")
-
+        
+        # [Node B Logic] Ambiguous -> Clarify
+        if analysis.get("is_ambiguous", False):
+            return "clarify"
+            
+        # 기존 로직: needs_clarification (deprecated logic, but keeping for safely)
         if analysis.get("needs_clarification", False):
             return "clarify"
         

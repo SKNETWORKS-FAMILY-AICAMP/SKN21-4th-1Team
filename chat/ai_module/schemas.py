@@ -22,26 +22,34 @@ class AgentState(TypedDict):
 # ============================================================
 # [SECTION 5] Pydantic Schemas - LLM 구조화된 출력용
 # ============================================================
-class HybridQuery(BaseModel):
-    """HyDE + Hybrid Search를 위한 쿼리 확장 결과"""
-    keyword_query: str = Field(
-        description="BM25 검색용: 조사 제거된 핵심 법률 키워드 (예: '근로기준법 해고예고수당 부당해고')")
-    semantic_query: str = Field(
-        description="Vector 검색용: 질문 의도와 문맥을 포함한 자연어 문장")
-    hyde_passage: str = Field(
-        description="Vector 검색용 가상 문서: 예상되는 법조문 내용 (2-3문장)")
+class ExpandedQuery(BaseModel):
+    """[Node A] Multi-Query Expansion 결과"""
+    original_query: str = Field(description="사용자 원본 질문")
+    keyword_query: str = Field(description="BM25 검색용 핵심 키워드 조합")
+    # HyDE 제거: 가상 답변 대신 유사 질문 확장
+    expanded_queries: List[str] = Field(
+        description="동의어/유의어를 포함한 확장된 3~4개의 법률 쿼리 리스트",
+        default_factory=list
+    )
 
 
 class QueryAnalysis(BaseModel):
-    """질문 분석 결과"""
+    """[Node B] 질문 분석 및 모호성 판단 결과"""
     category: str = Field(description="법률 분야: 노동법, 노동법 외, 기타(일상)")
     intent_type: str = Field(description="질문 의도: 법령조회, 절차문의, 상황판단, 권리확인, 분쟁해결, 일반상담")
-    needs_clarification: bool = Field(default=False, description="질문 모호 여부")
-    needs_case_law: bool = Field(default=False, description="판례 검색 필요 여부")
+    
+    # Ambiguity Router fields
+    is_ambiguous: bool = Field(description="질문이 모호하여 추가 정보가 필요한지 여부 (Specific vs Ambiguous)")
+    missing_info: List[str] = Field(
+        description="판단을 위해 부족한 필수 정보 목록 (예: '5인 이상 여부', '근로 기간')",
+        default_factory=list
+    )
+    
+    clarification_question: str = Field(default="", description="[Node C] 사용구: 사용자에게 정보를 요청하는 역질문")
+    
     query_complexity: str = Field(default="medium", description="질문 난이도: simple, medium, complex")
-    clarification_question: str = Field(default="", description="명확화 질문")
     user_situation: str = Field(default="", description="사용자 상황 요약")
-    core_question: str = Field(default="", description="사용자가 최종적으로 알고싶어하는 핵심 질문")
+    core_question: str = Field(default="", description="문맥이 해소된 검색용 핵심 질문 (Standalone Query)")
     related_laws: List[str] = Field(default_factory=list, description="관련 법률명")
 
 
