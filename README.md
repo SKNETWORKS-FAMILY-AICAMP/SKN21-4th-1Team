@@ -11,14 +11,14 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 # 팀원 및 담당 업무
 
 
-| 성함       | 담당 업무                                                    |
-| :--------- | :----------------------------------------------------------- |
-| **김준석** | RAG 기반 모델 구축 및 개선 |
-| **문지영** | Django 프로젝트 구조 설계, 채팅 세션 관리  |
-| **박내은** | AWS 기반 서비스 배포 및 운영 |
+| 성함       | 담당 업무                                 |
+| :--------- | :---------------------------------------- |
+| **김준석** | RAG 기반 모델 구축 및 개선                |
+| **문지영** | Django 프로젝트 구조 설계, 채팅 세션 관리 |
+| **박내은** | AWS 기반 서비스 배포 및 운영              |
 | **박민정** | 서비스 기획 및 기술 설계 산출물 전반 담당 |
-| **유성현** | AWS 기반 서비스 배포 및 운영 |
-| **전우영** | RAG 기반 모델 구축 및 개선 |
+| **유성현** | AWS 기반 서비스 배포 및 운영              |
+| **전우영** | RAG 기반 모델 구축 및 개선                |
 
 <br>
 
@@ -79,21 +79,21 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 
 ### 신규 개발
 
-| ID | 요구사항명 | 상세 설명 | 비고 |
-| :--- | :--- | :--- | :--- |
-| **F-01** | **사용자 인증** | Google OAuth 및 일반 이메일(ID/PW) 가입 기능을 모두 제공함. | Google OAuth 2.0 |
-| **F-02** | **채팅 UI** | 실시간 질의응답이 가능한 웹 기반 채팅 인터페이스(UI/UX) 제공. | 반응형 웹 디자인 |
+| ID       | 요구사항명         | 상세 설명                                                          | 비고             |
+| :------- | :----------------- | :----------------------------------------------------------------- | :--------------- |
+| **F-01** | **사용자 인증**    | Google OAuth 및 일반 이메일(ID/PW) 가입 기능을 모두 제공함.        | Google OAuth 2.0 |
+| **F-02** | **채팅 UI**        | 실시간 질의응답이 가능한 웹 기반 채팅 인터페이스(UI/UX) 제공.      | 반응형 웹 디자인 |
 | **F-03** | **대화 이력 저장** | 이메일 주소를 고유 식별자로 사용하여 대화 이력을 통합 관리/로드함. | 유저별 세션 관리 |
-| **F-04** | **근거 법령 제시** | 답변의 신뢰성을 위해 참조한 법령 조문을 명확히 명시. | 출처 표시 기능 |
+| **F-04** | **근거 법령 제시** | 답변의 신뢰성을 위해 참조한 법령 조문을 명확히 명시.               | 출처 표시 기능   |
 
 ### 성능 개선
 
-| ID | 구분 | 상세 설명 |
-| :--- | :--- | :--- |
-| **N-01** | **정확도** | 벡터&키워드 검색 + 리랭킹 2단계 검색으로 정확도 향상. | 3차 프로젝트보다 발전한 RAG 모듈 연동 |
+| ID       | 구분       | 상세 설명                                                                             |
+| :------- | :--------- | :------------------------------------------------------------------------------------ |
+| **N-01** | **정확도** | 벡터&키워드 검색 + 리랭킹 2단계 검색으로 정확도 향상.                                 | 3차 프로젝트보다 발전한 RAG 모듈 연동 |
 | **N-02** | **신뢰성** | 환각 현상 방지를 위해 검색된 법령 데이터 범위 내에서 답변을 생성하도록 프롬프트 제어. |
-| **N-03** | **가용성** | AWS EC2 인프라를 활용하여 안정적인 서비스 접속 환경 유지. |
-| **N-04** | **성능** | 질문 입력 후 답변 생성 시작까지 최대 10초 이내 수행 (Streaming 처리 권장). |
+| **N-03** | **가용성** | AWS EC2 인프라를 활용하여 안정적인 서비스 접속 환경 유지.                             |
+| **N-04** | **성능**   | 질문 입력 후 답변 생성 시작까지 최대 10초 이내 수행 (Streaming 처리 권장).            |
 
 
 
@@ -118,18 +118,18 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 # 🛠 기술 스택 & 사용한 모델
 
 
-| 분야                | 사용 도구 |
-|---------------------|-----------|
-| **Language**        | [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=Python&logoColor=white)](https://www.python.org/) |
-| **Collaboration Tool** | [![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)](https://git-scm.com/) [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/) [![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/)
-| **LLM Model** | [![GPT-4o-mini](https://img.shields.io/badge/GPT--4o--mini-412991?style=for-the-badge&logo=openai&logoColor=white)](https://platform.openai.com/) |
-| **Embedding Model** | [![Qwen3-Embedding-0.6B](https://img.shields.io/badge/Qwen3--Embedding--0.6B-5D5CDE?style=for-the-badge&logo=alibabacloud&logoColor=white)](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) [![BGE-M3](https://img.shields.io/badge/BGE--M3-FF9D00?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/BAAI/bge-m3) |
-| **Reranker Model** | [![Jina Reranker V2](https://img.shields.io/badge/Jina--Reranker--V2-000000?style=for-the-badge&logo=jina&logoColor=white)](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual) |
-| **Database** | ![Qdrant](https://img.shields.io/badge/Qdrant-FF4B4B?style=for-the-badge&logo=qdrant&logoColor=white) ![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white) |
-| **Library** | ![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white) ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white) |
-| **Orchestration / RAG** | [![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)](https://www.langchain.com/) [![LangGraph](https://img.shields.io/badge/LangGraph-000000?style=for-the-badge)](https://langchain-ai.github.io/langgraph/) |
-| **Frontend / Infra** | ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white) ![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white) ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white) |
-| **Development Env** | [![VS Code](https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/) [![Conda](https://img.shields.io/badge/Conda-3EB049?style=for-the-badge&logo=anaconda&logoColor=white)](https://www.anaconda.com/) |
+| 분야                    | 사용 도구                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Language**            | [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=Python&logoColor=white)](https://www.python.org/)                                                                                                                                                                                                                                                                                    |
+| **Collaboration Tool**  | [![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)](https://git-scm.com/) [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/) [![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/)                                  |
+| **LLM Model**           | [![GPT-4o-mini](https://img.shields.io/badge/GPT--4o--mini-412991?style=for-the-badge&logo=openai&logoColor=white)](https://platform.openai.com/)                                                                                                                                                                                                                                                                   |
+| **Embedding Model**     | [![Qwen3-Embedding-0.6B](https://img.shields.io/badge/Qwen3--Embedding--0.6B-5D5CDE?style=for-the-badge&logo=alibabacloud&logoColor=white)](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) [![BGE-M3](https://img.shields.io/badge/BGE--M3-FF9D00?style=for-the-badge&logo=huggingface&logoColor=white)](https://huggingface.co/BAAI/bge-m3)                                                                     |
+| **Reranker Model**      | [![Jina Reranker V2](https://img.shields.io/badge/Jina--Reranker--V2-000000?style=for-the-badge&logo=jina&logoColor=white)](https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual)                                                                                                                                                                                                                       |
+| **Database**            | ![Qdrant](https://img.shields.io/badge/Qdrant-FF4B4B?style=for-the-badge&logo=qdrant&logoColor=white) ![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)                                                                                                                                                                                                  |
+| **Library**             | ![Pandas](https://img.shields.io/badge/pandas-%23150458.svg?style=for-the-badge&logo=pandas&logoColor=white) ![NumPy](https://img.shields.io/badge/numpy-%23013243.svg?style=for-the-badge&logo=numpy&logoColor=white)                                                                                                                                                                                              |
+| **Orchestration / RAG** | [![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)](https://www.langchain.com/) [![LangGraph](https://img.shields.io/badge/LangGraph-000000?style=for-the-badge)](https://langchain-ai.github.io/langgraph/)                                                                                                                                           |
+| **Frontend / Infra**    | ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white) ![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=white) ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white) |
+| **Development Env**     | [![VS Code](https://img.shields.io/badge/VS%20Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://code.visualstudio.com/) [![Conda](https://img.shields.io/badge/Conda-3EB049?style=for-the-badge&logo=anaconda&logoColor=white)](https://www.anaconda.com/)                                                                                                                            |
 <br>
 
 
@@ -281,11 +281,7 @@ LANGCHAIN_TRACING_V2=true
 # 수행 결과 (시연 페이지)
 
 ## 로그인 페이지
-<img src="./docs/images/demo/signup_video.gif" width="48%"> 
-<img src="./docs/images/demo/login_video.gif" width="48%">
-<img src="./docs/images/demo/chat_video.gif" width="48%">
-<img src="./docs/images/demo/delete_chat_vido.gif" width="48%">
-<img src="./docs/images/demo/logout_video.gif" width="48%">
+<img src="./docs/images/demo/demo_full.gif" width="100%">
 
 ---
 
@@ -300,12 +296,12 @@ LANGCHAIN_TRACING_V2=true
 
 # 📝 회고
 
-| 성함       | 회고                                                           |
-| :--------- | :----------------------------------------------------------- |
-| **김준석** |  |
-| **문지영** |  |
+| 성함       | 회고                                                                                                             |
+| :--------- | :--------------------------------------------------------------------------------------------------------------- |
+| **김준석** |                                                                                                                  |
+| **문지영** |                                                                                                                  |
 | **박내은** | 짧은시간에 많은 것을 배울 수 있었던 프로젝트였습니다. 특히 도커와 AWS를 활용한 배포 경험은 매우 유익했습니다. :) |
-| **박민정** |  |
-| **유성현** |  |
-| **전우영** |  |
+| **박민정** |                                                                                                                  |
+| **유성현** |                                                                                                                  |
+| **전우영** |                                                                                                                  |
 
