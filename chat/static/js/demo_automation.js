@@ -119,35 +119,115 @@ class GhostCursor {
 async function runDemo() {
     // Check if demo is requested (e.g. via URL param ?demo=true)
     const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('demo')) return;
+    const isDemo = urlParams.has('demo') || sessionStorage.getItem('demo_active') === 'true';
+
+    if (!isDemo) return;
+
+    // Persist demo state across reloads/redirects
+    sessionStorage.setItem('demo_active', 'true');
 
     // Wait for load
     await new Promise(r => setTimeout(r, 1000));
 
     const ghost = new GhostCursor();
-    const step = parseInt(sessionStorage.getItem('demo_step') || '0');
 
-    console.log(`Starting Demo Step: ${step}`);
+    // Check current path to decide action
+    const path = window.location.pathname;
+
+    if (path.includes('/signup')) {
+        await runSignupStep(ghost);
+    } else if (path.includes('/login')) {
+        await runLoginStep(ghost);
+    } else if (path.includes('/chat') || path === '/' || path === '') {
+        await runChatStep(ghost);
+    }
+}
+
+async function runSignupStep(ghost) {
+    console.log("Starting Signup Step");
+    await ghost.wait(500);
+
+    // Input Email
+    // Try to find email field (generic or id)
+    let emailField = document.querySelector('input[name="email"]') || document.querySelector('#id_email');
+    if (emailField) {
+        // Generate random email to avoid duplicate error during repeated demos
+        const randomId = Math.floor(Math.random() * 1000);
+        await ghost.type(emailField.id ? '#' + emailField.id : 'input[name="email"]', `demo${randomId}@example.com`);
+    }
+
+    await ghost.wait(300);
+
+    // Password 1
+    let pass1 = document.querySelector('input[name="password1"]') || document.querySelector('#id_password1');
+    if (pass1) await ghost.type(pass1.id ? '#' + pass1.id : 'input[name="password1"]', 'DemoPass123!');
+
+    await ghost.wait(300);
+
+    // Password 2
+    let pass2 = document.querySelector('input[name="password2"]') || document.querySelector('#id_password2');
+    if (pass2) {
+        await ghost.type(pass2.id ? '#' + pass2.id : 'input[name="password2"]', 'DemoPass123!');
+    }
+
+    await ghost.wait(500);
+
+    // Click Signup Button
+    await ghost.click('button[type="submit"]');
+}
+
+async function runLoginStep(ghost) {
+    console.log("Starting Login Step");
+    await ghost.wait(500);
+
+    // Check if we need to type (auto-fill might not happen in demo)
+    let emailField = document.querySelector('input[name="login"]');
+    // If not filled, type generic or hope user typed. 
+    // Since signup redirects to login usually without auto-login in some configs, 
+    // we might need credentials. But we used random email in signup...
+    // Issue: Login step needs to know the email used in Signup.
+    // Solution: Just type a fixed demo email for now, OR assume signup logs in automatically.
+    // If signup logs in automatically, we won't land here. 
+    // If we land here, we need credentials.
+    // Let's type a standard demo email. User might need to have this account ready if signup isn't used.
+    // Or if signup WAS used, we are stuck.
+    // Let's assume for this demo, the user starts at Signup, and Signup logic handles login or redirects.
+    // If redirects to Login, we type fixed credentials.
+
+    if (emailField && !emailField.value) {
+        await ghost.type('input[name="login"]', 'demo_user@example.com');
+    }
+
+    await ghost.wait(300);
+
+    let passField = document.querySelector('input[name="password"]');
+    if (passField && !passField.value) {
+        await ghost.type('input[name="password"]', 'DemoPass123!');
+    }
+
+    await ghost.wait(500);
+
+    // Click Login
+    await ghost.click('button[type="submit"]');
+}
+
+async function runChatStep(ghost) {
+    const step = parseInt(sessionStorage.getItem('demo_step') || '0');
+    console.log(`Starting Chat Demo Step: ${step}`);
 
     if (step === 0) {
         // Step 0: Initial Load -> Click New Chat
         // Just to show activity, move around a bit
-        await ghost.moveTo('.nav-brand', 1000); // Hover over logo
+        await ghost.moveTo('.nav-brand', 1000);
         await ghost.wait(500);
-
-        // Go to New Chat
         await ghost.click('.btn-new-chat');
-
-        // Page will reload, set next step
         sessionStorage.setItem('demo_step', '1');
         return;
     }
 
-    // Note: Step 1 continues after reload
     if (step === 1) {
         // Step 1: Typing Q1
         await ghost.wait(1000);
-
         const questions = [
             "근로계약서 미작성 시 벌금은 얼마인가요?",
             "퇴직금 지급 기준이 어떻게 되나요?",
@@ -158,8 +238,6 @@ async function runDemo() {
         await ghost.type('#messageInput', questions[0]);
         await ghost.wait(500);
         await ghost.click('#sendBtn');
-
-        // Wait for answer (heuristic wait or observer)
         await waitForResponse();
 
         // Question 2
@@ -174,28 +252,17 @@ async function runDemo() {
         await ghost.click('#sendBtn');
         await waitForResponse();
 
-        // Step done, move to next
         sessionStorage.setItem('demo_step', '2');
-
-        // Continue immediately to delete step
         runDeleteStep(ghost);
     } else if (step === 2) {
-        // Just in case we reloaded
         runDeleteStep(ghost);
     }
 }
 
 async function runDeleteStep(ghost) {
-    // Step 2: Delete Chat
     await ghost.wait(1000);
-
-    // Hover over the first session item (current one)
-    // We need to assume the first session in the list is the one we want to delete.
     const deleteBtnSelector = '.session-item.active .delete-btn';
-
     await ghost.click(deleteBtnSelector);
-
-    // Wait for deletion confirming or UI update
     await ghost.wait(1000);
 
     // Step 3: Logout
@@ -203,6 +270,7 @@ async function runDeleteStep(ghost) {
 
     // End Demo
     sessionStorage.removeItem('demo_step');
+    sessionStorage.removeItem('demo_active');
     document.body.classList.remove('demo-active');
     // alert('Demo Completed!');
 }
