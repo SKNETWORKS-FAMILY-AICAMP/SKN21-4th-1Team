@@ -205,41 +205,50 @@ class LegalRAGBuilder:
             if not related_laws or analysis.get("category") != "노동법":
                 return {"next_action": "search"}
 
-            # 2. 첫 번째 법령에 대해 검증 (복수 법령일 경우 첫번째만 체크하거나 루프)
             target_law = related_laws[0]
             
-            # DB (or List) Check
-            exists = False
+            # 2. 검증 로직 개선 (Fuzzy Match -> DB Check)
+            verified_law = None
             
-            # 2-1. Static List Check (1차, 빠름)
+            # 2-1. Static List Check (Exact + Fuzzy)
             if target_law in LABOR_LAWS_UNIQUE:
-                exists = True
+                verified_law = target_law
             else:
-                # 2-2. DB Check (2차, 확실)
-                # target_law가 정확하지 않을 수 있으므로 DB 확인
-                exists = await self.vs_manager.check_law_exists(target_law)
+                # Fuzzy matching (cutoff 0.6 to allow "근로 기준법" -> "근로기준법")
+                matches = difflib.get_close_matches(target_law, LABOR_LAWS_UNIQUE, n=1, cutoff=0.6)
+                if matches:
+                    verified_law = matches[0]
+                    logger.info(f"Fuzzy match found: {target_law} -> {verified_law}")
             
-            if exists:
-                logger.info(f"Law verification passed: {target_law}")
+            # 2-2. DB Check (If not found in static list)
+            if not verified_law:
+                exists = await self.vs_manager.check_law_exists(target_law)
+                if exists:
+                    verified_law = target_law
+
+            if verified_law:
+                logger.info(f"Law verification passed: {verified_law}")
+                # Update analysis with corrected law name if needed
+                if verified_law != target_law:
+                    # state update is tricky in LangGraph unless we return new state
+                    # But proceeding to search is fine.
+                    pass
                 return {"next_action": "search"}
             else:
                 logger.info(f"Law verification failed: {target_law}")
                 
-                # 3. 유사 법령 찾기
+                # 3. 제안 (유사 법령 찾기 - 낮은 cutoff)
                 suggestions = difflib.get_close_matches(target_law, LABOR_LAWS_UNIQUE, n=3, cutoff=0.4)
                 
                 if suggestions:
-                    suggestion_str = ", ".join([f"'{s}'" for s in suggestions])
-                    msg = f"죄송합니다, 말씀하신 **'{target_law}'**은(는) 데이터베이스에서 찾을 수 없습니다.\n혹시 **{suggestion_str}**을(를) 말씀하시는 건가요?"
+                    suggestion_str = ", ".join([f"**'{s}'**" for s in suggestions])
+                    msg = f"죄송합니다, 말씀하신 **'{target_law}'**은(는) 데이터베이스에서 찾을 수 없습니다.\n혹시 {suggestion_str}을(를) 말씀하시는 건가요?"
                 else:
                     msg = f"죄송합니다, 말씀하신 **'{target_law}'**은(는) 현재 노동법 데이터베이스에 등록되어 있지 않습니다. 정확한 법령명을 확인해 주시겠어요?"
                 
-                # Update analysis to trigger clarification
-                # Note: We return generated_answer directly to show to user, 
-                # effectively bypassing search/generate nodes, acting like clarification
                 return {
                     "generated_answer": msg,
-                    "next_action": "clarify_end" # Custom signal to end
+                    "next_action": "clarify_end"
                 }
 
         return verify_law
