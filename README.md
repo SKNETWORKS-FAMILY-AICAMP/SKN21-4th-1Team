@@ -279,8 +279,6 @@ LANGCHAIN_TRACING_V2=true
 
 
 # 수행 결과 (시연 페이지)
-
-## 로그인 페이지
 <img src="./docs/images/demo/demo_full.gif" width="100%">
 
 ---
