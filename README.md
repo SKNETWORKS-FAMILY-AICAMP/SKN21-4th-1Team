@@ -57,7 +57,7 @@ RAG(Retrieval-Augmented Generation) 구조를 적용하여, 실제 법령 조문
 
 “노동법은 복잡하고 적용 사례도 다양하여 일반 노동자 및 사업주가 스스로 해결하기 어렵다는 현실이 존재한다. 실제로 정부가 AI 기반 노동법 상담 서비스를 도입해 11만7천건 이상의 상담이 이뤄진 사례도 보도되었으며, 노동법 개정 과정에서는 기업과 노동계 간 법 해석 논쟁이 확산되는 등 법의 실체적 이해가 어려운 상황이 드러났다.”
 
-![2025년 AI 노동법 상담 운영 실적](docs/ai_laborlaw_stats.png)
+![2025년 AI 노동법 상담 운영 실적](docs/images/statics//ai_laborlaw_stats.png)
 
 📎 출처: 고용노동부, 「AI 노동법 상담 운영 실적(2025)」
 
@@ -192,7 +192,7 @@ SKN21-4TH-1TEAM/
 ```
 
 ### 🛜 시스템 아키텍처 시각화
-![시스템 아키텍쳐](docs/system_architecture.png)
+![시스템 아키텍쳐](docs/images/arcitecture/system_architecture.png)
 
 **각 포인트의 역할은 다음과 같습니다.**
 
@@ -209,7 +209,7 @@ SKN21-4TH-1TEAM/
 
 ### 🐳 배포 환경
 
-![배포환경](docs/도커빌드.png)
+![배포환경](docs/images/arcitecture/docker_infra.png)
 
 **일관된 개발 및 배포 환경 구축을 위해 Docker를 활용하였습니다.**
 
@@ -281,9 +281,11 @@ LANGCHAIN_TRACING_V2=true
 # 수행 결과 (시연 페이지)
 
 ## 로그인 페이지
-<img src="./docs/Account.gif" width="48%"> 
-<img src="./docs/loginsuccess.gif" width="48%"> <img src="./docs/loginsocial.gif" width="48%">
-<img src="./docs/logout.gif" width="48%">
+<img src="./docs/images/demo/signup_video.gif" width="48%"> 
+<img src="./docs/images/demo/login_video.gif" width="48%">
+<img src="./docs/images/demo/chat_video.gif" width="48%">
+<img src="./docs/images/demo/delete_chat_vido.gif" width="48%">
+<img src="./docs/images/demo/logout_video.gif" width="48%">
 
 ---
 
