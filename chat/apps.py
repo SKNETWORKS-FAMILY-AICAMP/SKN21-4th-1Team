@@ -13,6 +13,15 @@ class ChatConfig(AppConfig):
         
         logger = logging.getLogger(__name__)
 
+        import os
+        import sys
+        
+        # runserver 사용 시: 
+        # 1. Main Process (Watcher) -> RUN_MAIN 미설정 -> 로딩 건너뜀
+        # 2. Child Process (Server) -> RUN_MAIN='true' -> 로딩 실행
+        if 'runserver' in sys.argv and os.environ.get('RUN_MAIN') != 'true':
+            return
+
         def load_model():
             logger.info("🚀 [Startup] Starting model loading in background...")
             # 싱글톤 초기화 호출
