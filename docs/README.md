@@ -11,7 +11,7 @@
 
 ## 1. 요구사항 정의서
 
-[요구사항 정의서](요구사항정의서.md) 문서 보러가기  
+[요구사항 정의서 보기](요구사항정의서.md)
 
 ---
 
@@ -21,19 +21,20 @@
 
 |          **메인 홈 (Home)**          |           **로그인 (Login)**           |
 | :----------------------------------: | :------------------------------------: |
-| ![Home](images/view_design/Home.png) | ![Login](images/view_design/Login.png) |
+| ![Home](view_design/Home.png) | ![Login](view_design/Login.png) |
 |       서비스 소개 및 시작 화면       |       사용자 인증 및 소셜 로그인       |
 
 |         **채팅 화면 (Chat)**         |       **마이페이지/계정 (Account)**        |
 | :----------------------------------: | :----------------------------------------: |
-| ![Chat](images/view_design/Chat.png) | ![Account](images/view_design/Account.png) |
+| ![Chat](view_design/Chat.png) | ![Account](view_design/Account.png) |
 |      법률 질의응답 및 사이드바       |               계정 정보 관리               |
 
 ---
 
 ## 3. 시스템 구성도 (Architecture)
-![System Architecture](images/arcitecture/system_architecture.png)
+![System Architecture](arcitecture/system_architecture.png)
 
 ---
 
 ## 4. 테스트 계획서 및 테스트 결과보고서
+![테스트 계획서 및 결과보고서](test/test_result.png)
